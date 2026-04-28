@@ -21,6 +21,13 @@ mkdir -p "$MACOS_DIR" "$RESOURCES_DIR" "$ICONSET_DIR"
 cp "$EXECUTABLE_SOURCE" "$MACOS_DIR/$APP_NAME"
 cp "$ROOT/AppBundle/Info.plist" "$CONTENTS_DIR/Info.plist"
 
+SPARKLE_FW=$(find "$ROOT/.build/artifacts" -name "Sparkle.framework" -path "*/macos-*" 2>/dev/null | head -1)
+if [ -n "$SPARKLE_FW" ]; then
+    mkdir -p "$CONTENTS_DIR/Frameworks"
+    cp -R "$SPARKLE_FW" "$CONTENTS_DIR/Frameworks/"
+    install_name_tool -add_rpath "@executable_path/../Frameworks" "$MACOS_DIR/$APP_NAME" 2>/dev/null || true
+fi
+
 sips -z 16 16 "$ICON_SOURCE" --out "$ICONSET_DIR/icon_16x16.png" >/dev/null
 sips -z 32 32 "$ICON_SOURCE" --out "$ICONSET_DIR/icon_16x16@2x.png" >/dev/null
 sips -z 32 32 "$ICON_SOURCE" --out "$ICONSET_DIR/icon_32x32.png" >/dev/null

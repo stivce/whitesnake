@@ -1,0 +1,77 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Extract version
+        id: version
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+
+      - name: Patch version in Info.plist
+        run: |
+          /usr/libexec/PlistBuddy \
+            -c "Set :CFBundleShortVersionString ${{ steps.version.outputs.VERSION }}" \
+            -c "Set :CFBundleVersion ${{ steps.version.outputs.VERSION }}" \
+            AppBundle/Info.plist
+
+      - name: Build app bundle
+        run: bash Scripts/build-app-bundle.sh
+
+      - name: Create DMG
+        run: bash Scripts/create-dmg.sh "${{ steps.version.outputs.VERSION }}"
+
+      - name: Download Sparkle tools
+        run: |
+          curl -sSL \
+            https://github.com/sparkle-project/Sparkle/releases/download/2.7.1/Sparkle-2.7.1.tar.xz \
+            -o sparkle.tar.xz
+          mkdir sparkle-tools
+          tar -xf sparkle.tar.xz -C sparkle-tools
+
+      - name: Sign DMG
+        env:
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+        run: |
+          VERSION="${{ steps.version.outputs.VERSION }}"
+          DMG="Whitesnake-${VERSION}.dmg"
+          SIGN_OUTPUT=$(./sparkle-tools/bin/sign_update "$DMG")
+          ED_SIG=$(echo "$SIGN_OUTPUT" | python3 -c \
+            "import sys,re; m=re.search(r'edSignature=\"([^\"]+)\"', sys.stdin.read()); print(m.group(1))")
+          FILE_SIZE=$(wc -c < "$DMG" | tr -d ' ')
+          echo "ED_SIG=$ED_SIG"       >> $GITHUB_ENV
+          echo "FILE_SIZE=$FILE_SIZE" >> $GITHUB_ENV
+
+      - name: Update appcast.xml
+        run: |
+          python3 Scripts/update-appcast.py \
+            "${{ steps.version.outputs.VERSION }}" \
+            "$ED_SIG" \
+            "$FILE_SIZE"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "Whitesnake ${{ steps.version.outputs.VERSION }}"
+          files: "Whitesnake-${{ steps.version.outputs.VERSION }}.dmg"
+          generate_release_notes: true
+
+      - name: Commit appcast
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add appcast.xml
+          git commit -m "Release ${{ github.ref_name }}"
+          git push origin HEAD:main

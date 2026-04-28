@@ -45,6 +45,31 @@ Tests/
     UI/       — DashboardViewModel unit tests
 ```
 
+## Releases
+
+Releases are automated via GitHub Actions. Pushing a version tag builds the app, packages it as a DMG, signs it with Sparkle's EdDSA key, publishes a GitHub Release, and updates `appcast.xml` so the in-app updater picks it up automatically.
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+### First-time setup
+
+1. **Generate Sparkle keys** (run once, requires the Sparkle tools):
+   ```bash
+   curl -sSL https://github.com/sparkle-project/Sparkle/releases/download/2.7.1/Sparkle-2.7.1.tar.xz \
+     | tar -xJ --strip-components=1 -C /tmp/sparkle bin/generate_keys
+   /tmp/sparkle/generate_keys
+   ```
+   This prints a **private key** and a **public key**.
+
+2. **Add the private key** as a GitHub Actions secret named `SPARKLE_PRIVATE_KEY`
+   (repo → Settings → Secrets → Actions).
+
+3. **Paste the public key** into `AppBundle/Info.plist` replacing `REPLACE_WITH_PUBLIC_KEY`
+   for the `SUPublicEDKey` entry.
+
 ## Architecture
 
 - **`SystemCheck`** — protocol every check conforms to. Declares `check()`, `fix()`, and `fix(progressHandler:)`.

@@ -1,4 +1,5 @@
 import AppKit
+import Sparkle
 import SwiftUI
 
 private enum WindowLayout {
@@ -61,6 +62,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 struct WhitesnakeApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var viewModel: DashboardViewModel
+    private let updaterController = SPUStandardUpdaterController(
+        startingUpdater: true,
+        updaterDelegate: nil,
+        userDriverDelegate: nil
+    )
 
     init() {
         let commandRunner = CommandRunner()

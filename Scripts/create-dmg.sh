@@ -7,12 +7,14 @@ APP_PATH="$ROOT/Build/Whitesnake.app"
 DMG_NAME="Whitesnake-${VERSION}.dmg"
 TMP_DIR=$(mktemp -d)
 
-# Copy app and strip any quarantine/debug attributes
+# Copy app using ditto (preserves structure better than cp)
 ditto "$APP_PATH" "$TMP_DIR/Whitesnake.app"
-xattr -cr "$TMP_DIR/Whitesnake.app" 2>/dev/null || true
 
-# Ad-hoc sign the app to prevent "damaged" errors
-codesign --force --deep --sign - "$TMP_DIR/Whitesnake.app" 2>/dev/null || true
+# Remove any broken signatures (Swift PM builds produce invalid signatures)
+codesign --remove-signature "$TMP_DIR/Whitesnake.app" 2>/dev/null || true
+
+# Strip all extended attributes (quarantine, provenance, etc.)
+xattr -cr "$TMP_DIR/Whitesnake.app" 2>/dev/null || true
 
 ln -s /Applications "$TMP_DIR/Applications"
 

@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 APP_NAME="Whitesnake"
-BUILD_DIR="$ROOT/.build/debug"
+BUILD_DIR="$ROOT/.build/release"
 APP_DIR="$ROOT/Build/$APP_NAME.app"
 CONTENTS_DIR="$APP_DIR/Contents"
 MACOS_DIR="$CONTENTS_DIR/MacOS"
@@ -13,13 +13,18 @@ ICON_SOURCE="$ROOT/whitesnake.png"
 ICON_OUTPUT="$RESOURCES_DIR/AppIcon.icns"
 EXECUTABLE_SOURCE="$BUILD_DIR/$APP_NAME"
 
-swift build --package-path "$ROOT"
+swift build -c release --package-path "$ROOT"
 
 rm -rf "$APP_DIR" "$ICONSET_DIR"
 mkdir -p "$MACOS_DIR" "$RESOURCES_DIR" "$ICONSET_DIR"
 
 cp "$EXECUTABLE_SOURCE" "$MACOS_DIR/$APP_NAME"
 cp "$ROOT/AppBundle/Info.plist" "$CONTENTS_DIR/Info.plist"
+
+RESOURCE_BUNDLE="$BUILD_DIR/${APP_NAME}_${APP_NAME}.bundle"
+if [ -d "$RESOURCE_BUNDLE" ]; then
+    cp -R "$RESOURCE_BUNDLE" "$RESOURCES_DIR/"
+fi
 
 SPARKLE_FW=$(find "$ROOT/.build/artifacts" -name "Sparkle.framework" -path "*/macos-*" 2>/dev/null | head -1)
 if [ -n "$SPARKLE_FW" ]; then

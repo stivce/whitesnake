@@ -11,7 +11,6 @@ private enum WindowLayout {
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
-        configureApplicationIcon()
         NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true)
 
@@ -47,15 +46,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    @MainActor
-    private func configureApplicationIcon() {
-        guard let iconURL = Bundle.module.url(forResource: "whitesnake", withExtension: "png"),
-              let iconImage = NSImage(contentsOf: iconURL) else {
-            return
-        }
-
-        NSApp.applicationIconImage = iconImage
-    }
 }
 
 @main

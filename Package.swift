@@ -21,9 +21,6 @@ let package = Package(
             name: "Whitesnake",
             dependencies: [
                 .product(name: "Sparkle", package: "Sparkle")
-            ],
-            resources: [
-                .process("Resources")
             ]
         ),
         .testTarget(

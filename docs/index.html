@@ -276,19 +276,19 @@
         <div class="requirements">
             <p style="margin-bottom: 16px; font-size: 15px; color: var(--text-secondary);">
                 Since Whitesnake is an open-source personal project, it is not notarized by Apple.
-                macOS will warn that the app is from an "unidentified developer" or say it's "damaged."
-                Here's how to open it:
+                macOS may say the app is "damaged" — this is a misleading message for unsigned apps.
+                Here's how to fix it:
             </p>
             <ol style="padding-left: 20px; list-style: decimal; color: var(--text-secondary); font-size: 15px; line-height: 1.8;">
-                <li>Open the downloaded DMG and drag <strong>Whitesnake.app</strong> into your <strong>Applications</strong> folder</li>
-                <li>Open <strong>Terminal</strong> and run this command:</li>
+                <li>Open the DMG and drag <strong>Whitesnake.app</strong> into your <strong>Applications</strong> folder</li>
+                <li>Open <strong>Terminal</strong> and run:</li>
             </ol>
-            <code style="display: block; background: var(--bg); border: 1px solid var(--border); padding: 12px 16px; border-radius: 8px; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 14px; color: var(--success); margin: 0 20px 16px;">xattr -d com.apple.quarantine /Applications/Whitesnake.app</code>
+            <code style="display: block; background: var(--bg); border: 1px solid var(--border); padding: 12px 16px; border-radius: 8px; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 14px; color: var(--success); margin: 0 20px 16px;">xattr -cr /Applications/Whitesnake.app</code>
             <ol start="3" style="padding-left: 20px; list-style: decimal; color: var(--text-secondary); font-size: 15px; line-height: 1.8;">
-                <li>Now open Whitesnake normally from Applications</li>
+                <li>Open Whitesnake from Applications</li>
             </ol>
             <p style="margin-top: 16px; font-size: 14px; color: var(--text-secondary);">
-                You only need to do this once. The app is safe — "damaged" is macOS's misleading message for unsigned apps.
+                The <code style="color: var(--text-primary);">-cr</code> flag recursively clears all quarantine attributes. You only need to do this once.
             </p>
         </div>
     </div>

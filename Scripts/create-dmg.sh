@@ -7,7 +7,13 @@ APP_PATH="$ROOT/Build/Whitesnake.app"
 DMG_NAME="Whitesnake-${VERSION}.dmg"
 TMP_DIR=$(mktemp -d)
 
-cp -r "$APP_PATH" "$TMP_DIR/"
+# Copy app and strip any quarantine/debug attributes
+ditto "$APP_PATH" "$TMP_DIR/Whitesnake.app"
+xattr -cr "$TMP_DIR/Whitesnake.app" 2>/dev/null || true
+
+# Ad-hoc sign the app to prevent "damaged" errors
+codesign --force --deep --sign - "$TMP_DIR/Whitesnake.app" 2>/dev/null || true
+
 ln -s /Applications "$TMP_DIR/Applications"
 
 hdiutil create \

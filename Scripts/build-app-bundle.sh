@@ -23,7 +23,30 @@ cp "$ROOT/AppBundle/Info.plist" "$CONTENTS_DIR/Info.plist"
 
 RESOURCE_BUNDLE="$BUILD_DIR/${APP_NAME}_${APP_NAME}.bundle"
 if [ -d "$RESOURCE_BUNDLE" ]; then
+    DEST_BUNDLE="$RESOURCES_DIR/${APP_NAME}_${APP_NAME}.bundle"
     cp -R "$RESOURCE_BUNDLE" "$RESOURCES_DIR/"
+    if [ ! -f "$DEST_BUNDLE/Info.plist" ]; then
+        cat > "$DEST_BUNDLE/Info.plist" <<EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleIdentifier</key>
+    <string>com.whitesnake.app.resources</string>
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+    <key>CFBundleName</key>
+    <string>${APP_NAME}_${APP_NAME}</string>
+    <key>CFBundlePackageType</key>
+    <string>BNDL</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0</string>
+    <key>CFBundleVersion</key>
+    <string>1</string>
+</dict>
+</plist>
+EOF
+    fi
 fi
 
 SPARKLE_FW=$(find "$ROOT/.build/artifacts" -name "Sparkle.framework" -path "*/macos-*" 2>/dev/null | head -1)

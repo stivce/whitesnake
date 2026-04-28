@@ -45,9 +45,12 @@ jobs:
         env:
           SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
         run: |
+          chmod +x ./sparkle-tools/bin/sign_update
           VERSION="${{ steps.version.outputs.VERSION }}"
           DMG="Whitesnake-${VERSION}.dmg"
-          SIGN_OUTPUT=$(./sparkle-tools/bin/sign_update "$DMG")
+          ls -lh "$DMG"
+          SIGN_OUTPUT=$(./sparkle-tools/bin/sign_update "$DMG" 2>&1)
+          echo "sign_update output: $SIGN_OUTPUT"
           ED_SIG=$(echo "$SIGN_OUTPUT" | python3 -c \
             "import sys,re; m=re.search(r'edSignature=\"([^\"]+)\"', sys.stdin.read()); print(m.group(1))")
           FILE_SIZE=$(wc -c < "$DMG" | tr -d ' ')

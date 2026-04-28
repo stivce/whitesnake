@@ -38,7 +38,8 @@ jobs:
           curl -sSL \
             https://github.com/sparkle-project/Sparkle/releases/download/2.9.1/Sparkle-2.9.1.tar.xz \
             -o sparkle.tar.xz
-          mkdir sparkle-tools
+          rm -rf sparkle-tools
+          mkdir -p sparkle-tools
           tar -xf sparkle.tar.xz -C sparkle-tools
           xattr -cr ./sparkle-tools
 

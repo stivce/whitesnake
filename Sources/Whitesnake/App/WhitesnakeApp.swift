@@ -3,10 +3,11 @@ import Sparkle
 import SwiftUI
 
 private enum WindowLayout {
-    static let aspectRatio: CGFloat = 580.0 / 855.0
-    static let maxWidthFraction: CGFloat = 0.8
-    static let maxHeightFraction: CGFloat = 0.85
-    static let snapGrid: CGFloat = 5.0
+    static let preferredWidth: CGFloat = 720
+    static let preferredHeight: CGFloat = 900
+    static let minWidth: CGFloat = 640
+    static let minHeight: CGFloat = 880
+    static let maxScreenFraction: CGFloat = 0.95
 }
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -29,16 +30,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     return
                 }
                 let screenFrame = screen.visibleFrame
-                let maxUsableWidth = screenFrame.width * WindowLayout.maxWidthFraction
-                var targetWidth = round(maxUsableWidth / WindowLayout.snapGrid) * WindowLayout.snapGrid
-                var targetHeight = round(targetWidth / WindowLayout.aspectRatio / WindowLayout.snapGrid) * WindowLayout.snapGrid
+                let maxWidth = screenFrame.width * WindowLayout.maxScreenFraction
+                let maxHeight = screenFrame.height * WindowLayout.maxScreenFraction
+                let targetWidth = min(WindowLayout.preferredWidth, maxWidth)
+                let targetHeight = min(WindowLayout.preferredHeight, maxHeight)
 
-                let maxHeight = screenFrame.height * WindowLayout.maxHeightFraction
-                if targetHeight > maxHeight {
-                    targetHeight = round(maxHeight / WindowLayout.snapGrid) * WindowLayout.snapGrid
-                    targetWidth = round(targetHeight * WindowLayout.aspectRatio / WindowLayout.snapGrid) * WindowLayout.snapGrid
-                }
-
+                window.minSize = NSSize(width: WindowLayout.minWidth, height: WindowLayout.minHeight)
                 let x = (screenFrame.width - targetWidth) / 2 + screenFrame.origin.x
                 let y = (screenFrame.height - targetHeight) / 2 + screenFrame.origin.y
                 window.setFrame(NSRect(x: x, y: y, width: targetWidth, height: targetHeight), display: true)

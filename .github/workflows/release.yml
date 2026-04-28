@@ -49,10 +49,13 @@ jobs:
           VERSION="${{ steps.version.outputs.VERSION }}"
           DMG="Whitesnake-${VERSION}.dmg"
           ls -lh "$DMG"
+          KEY_FILE=$(mktemp)
+          printf '%s' "$SPARKLE_PRIVATE_KEY" > "$KEY_FILE"
           set +e
-          SIGN_OUTPUT=$(./sparkle-tools/bin/sign_update "$DMG" 2>&1)
+          SIGN_OUTPUT=$(./sparkle-tools/bin/sign_update --ed-key-file "$KEY_FILE" "$DMG" 2>&1)
           SIGN_EXIT=$?
           set -e
+          rm -f "$KEY_FILE"
           echo "sign_update exit: $SIGN_EXIT"
           echo "sign_update output: $SIGN_OUTPUT"
           if [ "$SIGN_EXIT" -ne 0 ]; then

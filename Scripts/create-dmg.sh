@@ -7,11 +7,11 @@ APP_PATH="$ROOT/Build/Whitesnake.app"
 DMG_NAME="Whitesnake-${VERSION}.dmg"
 TMP_DIR=$(mktemp -d)
 
-# Copy app using ditto (handles app bundles correctly, preserves structure)
+# Copy app using ditto (handles app bundles correctly)
 ditto "$APP_PATH" "$TMP_DIR/Whitesnake.app"
 
-# Remove ALL extended attributes including signatures and provenance
-xattr -cr "$TMP_DIR/Whitesnake.app" 2>/dev/null || true
+# Strip provenance attribute only (DO NOT remove code signature - it corrupts the binary)
+find "$TMP_DIR/Whitesnake.app" -exec xattr -d com.apple.provenance {} \; 2>/dev/null || true
 
 ln -s /Applications "$TMP_DIR/Applications"
 

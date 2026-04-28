@@ -280,14 +280,14 @@
             </p>
             <ol style="padding-left: 20px; list-style: decimal; color: var(--text-secondary); font-size: 15px; line-height: 1.8;">
                 <li>Open the DMG and drag <strong>Whitesnake.app</strong> into your <strong>Applications</strong> folder</li>
-                <li>Open <strong>Terminal</strong> (Cmd+Space → type "Terminal") and run this command:</li>
+                <li>Open <strong>Terminal</strong> (Cmd+Space → type "Terminal") and run:</li>
             </ol>
-            <code style="display: block; background: var(--bg); border: 1px solid var(--border); padding: 12px 16px; border-radius: 8px; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 14px; color: var(--success); margin: 0 20px 16px;">xattr -cr /Applications/Whitesnake.app</code>
+            <code style="display: block; background: var(--bg); border: 1px solid var(--border); padding: 12px 16px; border-radius: 8px; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 14px; color: var(--success); margin: 0 20px 16px;">xattr -d com.apple.provenance -r /Applications/Whitesnake.app</code>
             <ol start="3" style="padding-left: 20px; list-style: decimal; color: var(--text-secondary); font-size: 15px; line-height: 1.8;">
                 <li>Now open Whitesnake normally from Applications</li>
             </ol>
             <p style="margin-top: 16px; font-size: 14px; color: var(--text-secondary);">
-                This removes the quarantine flag macOS adds to downloaded files. You only need to do this once.
+                This removes the provenance attribute macOS adds to downloaded files. You only need to do this once.
             </p>
         </div>
     </div>

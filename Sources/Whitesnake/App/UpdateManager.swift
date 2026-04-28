@@ -22,7 +22,7 @@ final class UpdateManager: NSObject, ObservableObject {
         // Silent background check on launch
         Task {
             try? await Task.sleep(for: .seconds(2))
-            self.updaterController.checkForUpdatesInBackground()
+            self.updaterController.updater.checkForUpdatesInBackground()
         }
     }
 

@@ -49,7 +49,7 @@ jobs:
           VERSION="${{ steps.version.outputs.VERSION }}"
           DMG="Whitesnake-${VERSION}.dmg"
           ls -lh "$DMG"
-          SIGN_OUTPUT=$(./sparkle-tools/bin/sign_update "$DMG" 2>&1)
+          SIGN_OUTPUT=$(./sparkle-tools/bin/sign_update -s "$SPARKLE_PRIVATE_KEY" "$DMG" 2>&1)
           echo "sign_update output: $SIGN_OUTPUT"
           ED_SIG=$(echo "$SIGN_OUTPUT" | python3 -c \
             "import sys,re; m=re.search(r'edSignature=\"([^\"]+)\"', sys.stdin.read()); print(m.group(1))")

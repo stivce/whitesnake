@@ -7,3 +7,11 @@ DerivedData/
 .swiftpm/configuration/registries.json
 .swiftpm/xcode/package.xcworkspace/contents.xcworkspacedata
 .netrc
+.claude/
+
+# Sparkle tools (downloaded on demand)
+sparkle-tools/
+sparkle.tar.xz
+
+# Local DMG artifacts
+*.dmg

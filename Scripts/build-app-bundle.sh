@@ -41,5 +41,7 @@ cp "$ICON_SOURCE" "$ICONSET_DIR/icon_512x512@2x.png"
 
 iconutil -c icns "$ICONSET_DIR" -o "$ICON_OUTPUT"
 
+codesign --force --deep -s - "$APP_DIR"
+
 touch "$APP_DIR"
 printf 'Built %s\n' "$APP_DIR"

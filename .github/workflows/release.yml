@@ -40,23 +40,32 @@ jobs:
             -o sparkle.tar.xz
           mkdir sparkle-tools
           tar -xf sparkle.tar.xz -C sparkle-tools
+          xattr -cr ./sparkle-tools
 
       - name: Sign DMG
         env:
           SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
         run: |
-          chmod +x ./sparkle-tools/bin/sign_update
           VERSION="${{ steps.version.outputs.VERSION }}"
           DMG="Whitesnake-${VERSION}.dmg"
           ls -lh "$DMG"
-          KEY_FILE=$(mktemp)
-          echo "$SPARKLE_PRIVATE_KEY" > "$KEY_FILE"
-          SIGN_OUTPUT=$(./sparkle-tools/bin/sign_update --ed-key-file "$KEY_FILE" "$DMG" 2>&1)
-          rm -f "$KEY_FILE"
+          set +e
+          SIGN_OUTPUT=$(./sparkle-tools/bin/sign_update "$DMG" 2>&1)
+          SIGN_EXIT=$?
+          set -e
+          echo "sign_update exit: $SIGN_EXIT"
           echo "sign_update output: $SIGN_OUTPUT"
+          if [ "$SIGN_EXIT" -ne 0 ]; then
+            echo "sign_update failed — check SPARKLE_PRIVATE_KEY secret"
+            exit 1
+          fi
           ED_SIG=$(echo "$SIGN_OUTPUT" | python3 -c \
-            "import sys,re; m=re.search(r'edSignature=\"([^\"]+)\"', sys.stdin.read()); print(m.group(1))")
+            "import sys,re; m=re.search(r'edSignature=\"([^\"]+)\"', sys.stdin.read()); print(m.group(1) if m else '')")
           FILE_SIZE=$(wc -c < "$DMG" | tr -d ' ')
+          if [ -z "$ED_SIG" ]; then
+            echo "Failed to parse edSignature from: $SIGN_OUTPUT"
+            exit 1
+          fi
           echo "ED_SIG=$ED_SIG"       >> $GITHUB_ENV
           echo "FILE_SIZE=$FILE_SIZE" >> $GITHUB_ENV
 

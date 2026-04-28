@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Whitesnake — macOS Dev Environment Checker</title>
+    <link rel="icon" type="image/png" href="whitesnake.png">
+    <style>
+        :root {
+            --bg: #000000;
+            --surface: #1c1c1e;
+            --surface-hover: #2c2c2e;
+            --text-primary: #ffffff;
+            --text-secondary: #98989d;
+            --accent: #0a84ff;
+            --accent-hover: #409cff;
+            --border: #38383a;
+            --success: #30d158;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text-primary);
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        /* Hero */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 80px 24px;
+        }
+
+        .hero-icon {
+            width: 128px;
+            height: 128px;
+            border-radius: 28px;
+            margin-bottom: 32px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+
+        .hero h1 {
+            font-size: 48px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            margin-bottom: 12px;
+        }
+
+        .hero .tagline {
+            font-size: 20px;
+            color: var(--text-secondary);
+            max-width: 480px;
+            margin-bottom: 40px;
+        }
+
+        .download-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--accent);
+            color: #fff;
+            text-decoration: none;
+            padding: 16px 32px;
+            border-radius: 12px;
+            font-size: 17px;
+            font-weight: 600;
+            transition: background 0.2s, transform 0.1s;
+        }
+
+        .download-btn:hover {
+            background: var(--accent-hover);
+            transform: scale(1.02);
+        }
+
+        .download-btn:active {
+            transform: scale(0.98);
+        }
+
+        .download-btn svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        .version-info {
+            margin-top: 16px;
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .version-info .badge {
+            display: inline-block;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 13px;
+            color: var(--success);
+        }
+
+        /* Sections */
+        .section {
+            padding: 80px 0;
+        }
+
+        .section h2 {
+            font-size: 32px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            margin-bottom: 32px;
+            text-align: center;
+        }
+
+        /* Checks Grid */
+        .checks-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 12px;
+        }
+
+        .check-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px 20px;
+            transition: background 0.2s;
+        }
+
+        .check-card:hover {
+            background: var(--surface-hover);
+        }
+
+        .check-card .name {
+            font-weight: 600;
+            font-size: 15px;
+            margin-bottom: 4px;
+        }
+
+        .check-card .desc {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        /* Requirements */
+        .requirements {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px 32px;
+        }
+
+        .requirements ul {
+            list-style: none;
+        }
+
+        .requirements li {
+            padding: 8px 0;
+            font-size: 15px;
+            color: var(--text-secondary);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .requirements li:last-child {
+            border-bottom: none;
+        }
+
+        .requirements li strong {
+            color: var(--text-primary);
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 48px 24px;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .footer a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* Loading state */
+        .download-btn.loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            .hero h1 { font-size: 36px; }
+            .hero .tagline { font-size: 17px; }
+            .hero-icon { width: 96px; height: 96px; border-radius: 22px; }
+            .section { padding: 60px 0; }
+        }
+    </style>
+</head>
+<body>
+
+<section class="hero">
+    <img src="whitesnake.png" alt="Whitesnake" class="hero-icon">
+    <h1>Whitesnake</h1>
+    <p class="tagline">Check and fix your macOS development environment in one place.</p>
+
+    <a id="download-link" class="download-btn loading" href="#">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/>
+        </svg>
+        <span id="download-text">Loading...</span>
+    </a>
+
+    <div class="version-info">
+        Latest: <span id="version-badge" class="badge">—</span>
+    </div>
+</section>
+
+<section class="section">
+    <div class="container">
+        <h2>What it checks</h2>
+        <div class="checks-grid">
+            <div class="check-card">
+                <div class="name">macOS Update</div>
+                <div class="desc">Opens Software Update settings</div>
+            </div>
+            <div class="check-card">
+                <div class="name">Xcode CLT</div>
+                <div class="desc">Triggers system installer</div>
+            </div>
+            <div class="check-card">
+                <div class="name">Homebrew</div>
+                <div class="desc">Opens brew.sh</div>
+            </div>
+            <div class="check-card">
+                <div class="name">Rosetta 2</div>
+                <div class="desc">Installs via softwareupdate</div>
+            </div>
+            <div class="check-card">
+                <div class="name">Git</div>
+                <div class="desc">Installs via Homebrew</div>
+            </div>
+            <div class="check-card">
+                <div class="name">Ansible</div>
+                <div class="desc">Installs via Homebrew</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="section">
+    <div class="container">
+        <h2>Requirements</h2>
+        <div class="requirements">
+            <ul>
+                <li><strong>macOS</strong> — 14 (Sonoma) or later</li>
+                <li><strong>Architecture</strong> — Apple Silicon (arm64)</li>
+                <li><strong>Prerequisite</strong> — Xcode Command Line Tools (<code>xcode-select --install</code>)</li>
+            </ul>
+        </div>
+    </div>
+</section>
+
+<footer class="footer">
+    <p><a href="https://github.com/stivce/whitesnake">GitHub</a> &middot; Built with Swift 6</p>
+</footer>
+
+<script>
+    const repo = 'stivce/whitesnake';
+    const apiUrl = `https://api.github.com/repos/${repo}/releases/latest`;
+
+    async function fetchLatestRelease() {
+        try {
+            const res = await fetch(apiUrl);
+            if (!res.ok) throw new Error('No releases found');
+            const data = await res.json();
+
+            const tagName = data.tag_name; // e.g. "v1.0.0"
+            const version = tagName.replace(/^v/, '');
+
+            const dmgAsset = data.assets.find(a => a.name.endsWith('.dmg'));
+            if (!dmgAsset) throw new Error('No DMG asset found');
+
+            const link = document.getElementById('download-link');
+            const text = document.getElementById('download-text');
+            const badge = document.getElementById('version-badge');
+
+            link.href = dmgAsset.browser_download_url;
+            link.classList.remove('loading');
+            text.textContent = `Download Whitesnake ${version}`;
+            badge.textContent = version;
+        } catch (err) {
+            const link = document.getElementById('download-link');
+            const text = document.getElementById('download-text');
+            const badge = document.getElementById('version-badge');
+
+            link.href = `https://github.com/${repo}/releases`;
+            link.classList.remove('loading');
+            text.textContent = 'View Releases';
+            badge.textContent = 'N/A';
+            badge.style.color = '#ff9f0a';
+        }
+    }
+
+    fetchLatestRelease();
+</script>
+
+</body>
+</html>

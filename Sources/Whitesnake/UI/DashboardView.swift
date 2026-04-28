@@ -2,6 +2,7 @@ import SwiftUI
 
 struct DashboardView: View {
     @ObservedObject var viewModel: DashboardViewModel
+    @ObservedObject var updateManager: UpdateManager
 
     var body: some View {
         GeometryReader { geometry in
@@ -17,29 +18,30 @@ struct DashboardView: View {
                             .strokeBorder(panelStroke, lineWidth: 1)
                     }
                     .overlay {
-                        ScrollView {
-                            VStack(alignment: .leading, spacing: Design.sectionSpacing) {
-                                headerCard(isCompact: isCompact)
+                        VStack(alignment: .leading, spacing: Design.sectionSpacing) {
+                            headerCard(isCompact: isCompact)
 
-                                VStack(spacing: Design.rowSpacing) {
-                                    ForEach(viewModel.items) { item in
-                                        CheckRowView(item: item) {
-                                            Task { await viewModel.fix(checkID: item.id) }
-                                        }
+                            VStack(spacing: Design.rowSpacing) {
+                                ForEach(viewModel.items) { item in
+                                    CheckRowView(item: item) {
+                                        Task { await viewModel.fix(checkID: item.id) }
                                     }
                                 }
-
-                                footerRow(isCompact: isCompact)
                             }
-                            .padding(.horizontal, Design.contentPaddingH)
-                            .padding(.top, Design.contentPaddingTop)
-                            .padding(.bottom, Design.contentPaddingV)
+
+                            footerRow(isCompact: isCompact)
                         }
+                        .padding(.horizontal, Design.contentPaddingH)
+                        .padding(.top, Design.contentPaddingTop)
+                        .padding(.bottom, Design.contentPaddingV)
                         .clipShape(RoundedRectangle(cornerRadius: Design.panelCornerRadius, style: .continuous))
                     }
-                    .padding(Design.panelPadding)
+                    .padding(.top, Design.panelPaddingTop)
+                    .padding(.bottom, Design.panelPadding)
+                    .padding(.horizontal, Design.panelPadding)
             }
         }
+        .ignoresSafeArea()
         .task {
             await viewModel.refreshAll()
         }
@@ -179,35 +181,71 @@ struct DashboardView: View {
     }
 
     private func metricPill(title: String, value: Int, tint: Color) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(title.uppercased())
-                .font(.system(size: 9, weight: .bold))
+        HStack(spacing: 6) {
+            Circle()
+                .fill(tint)
+                .frame(width: 7, height: 7)
+
+            Text("\(value)")
+                .font(.system(size: 13, weight: .semibold, design: .rounded))
+
+            Text(title)
+                .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(.secondary)
-
-            HStack(spacing: 6) {
-                Circle()
-                    .fill(tint)
-                    .frame(width: 7, height: 7)
-
-                Text("\(value)")
-                    .font(.system(size: 15, weight: .semibold, design: .rounded))
-            }
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.white.opacity(0.045), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .padding(.horizontal, 10)
+        .padding(.vertical, 5)
+        .background(.white.opacity(0.045), in: Capsule())
     }
 
     private var headerTitleBlock: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Whitesnake")
-                .font(.system(size: 30, weight: .bold, design: .rounded))
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text("Whitesnake")
+                    .font(.system(size: 30, weight: .bold, design: .rounded))
+
+                Text("v\(updateManager.currentVersion)")
+                    .font(.system(size: 12, weight: .medium, design: .monospaced))
+                    .foregroundStyle(.tertiary)
+
+                if let newVersion = updateManager.availableVersion {
+                    updateButton(newVersion: newVersion)
+                }
+            }
 
             Text("Development environment readiness for macOS")
                 .font(.system(size: 13, weight: .medium))
                 .foregroundStyle(.secondary)
         }
+    }
+
+    private func updateButton(newVersion: String) -> some View {
+        Button {
+            updateManager.installUpdate()
+        } label: {
+            HStack(spacing: 6) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 5, style: .continuous)
+                        .fill(Color.green.opacity(0.85))
+                    Image(systemName: "arrow.up")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(.white)
+                }
+                .frame(width: 18, height: 18)
+
+                Text("v\(newVersion)")
+                    .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                    .foregroundStyle(.primary)
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(.white.opacity(0.06), in: Capsule())
+            .overlay {
+                Capsule().strokeBorder(.white.opacity(0.1), lineWidth: 1)
+            }
+        }
+        .buttonStyle(.plain)
+        .help("Install update to v\(newVersion) and relaunch")
     }
 
     private var headerIcon: some View {
@@ -227,11 +265,7 @@ struct DashboardView: View {
     }
 
     private func metricsGrid(columns: Int) -> some View {
-        LazyVGrid(
-            columns: Array(repeating: GridItem(.flexible(), spacing: Design.rowSpacing), count: columns),
-            alignment: .leading,
-            spacing: Design.rowSpacing
-        ) {
+        HStack(spacing: 8) {
             metricPill(title: "Healthy", value: healthyCount, tint: .green)
             metricPill(title: "Needs Action", value: actionCount, tint: .yellow)
             metricPill(title: "Missing", value: missingCount, tint: .red)
@@ -279,11 +313,12 @@ private enum Design {
     static let headerCornerRadius: CGFloat = 24
     static let rowCornerRadius: CGFloat = 18
     static let compactBreakpoint: CGFloat = 560
-    static let panelPadding: CGFloat = 14
+    static let panelPadding: CGFloat = 32
+    static let panelPaddingTop: CGFloat = 48
     static let headerCardPadding: CGFloat = 18
-    static let contentPaddingH: CGFloat = 22
-    static let contentPaddingTop: CGFloat = 58
-    static let contentPaddingV: CGFloat = 22
+    static let contentPaddingH: CGFloat = 20
+    static let contentPaddingTop: CGFloat = 20
+    static let contentPaddingV: CGFloat = 20
     static let rowPaddingH: CGFloat = 14
     static let sectionSpacing: CGFloat = 18
     static let rowSpacing: CGFloat = 10

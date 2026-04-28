@@ -4,9 +4,9 @@ import SwiftUI
 
 private enum WindowLayout {
     static let preferredWidth: CGFloat = 720
-    static let preferredHeight: CGFloat = 900
+    static let preferredHeight: CGFloat = 880
     static let minWidth: CGFloat = 640
-    static let minHeight: CGFloat = 880
+    static let minHeight: CGFloat = 860
     static let maxScreenFraction: CGFloat = 0.95
 }
 
@@ -49,11 +49,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 struct WhitesnakeApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var viewModel: DashboardViewModel
-    private let updaterController = SPUStandardUpdaterController(
-        startingUpdater: true,
-        updaterDelegate: nil,
-        userDriverDelegate: nil
-    )
+    @StateObject private var updateManager = UpdateManager()
 
     init() {
         let commandRunner = CommandRunner()
@@ -73,7 +69,7 @@ struct WhitesnakeApp: App {
 
     var body: some Scene {
         WindowGroup {
-            DashboardView(viewModel: viewModel)
+            DashboardView(viewModel: viewModel, updateManager: updateManager)
         }
         .windowStyle(.hiddenTitleBar)
     }

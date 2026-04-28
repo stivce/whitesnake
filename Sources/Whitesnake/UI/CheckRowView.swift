@@ -16,7 +16,7 @@ struct CheckRowView: View {
             content(isCompact: isCompact)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         }
-        .frame(minHeight: 72)
+        .frame(minHeight: 60)
         .onAppear(perform: startProgressAnimation)
         .onChange(of: item.status) { _, newStatus in
             if newStatus == .installing {
@@ -220,6 +220,6 @@ private enum Design {
     static let progressStripHeight: CGFloat = 4
     static let compactBreakpoint: CGFloat = 430
     static let rowPaddingH: CGFloat = 14
-    static let rowPaddingV: CGFloat = 12
+    static let rowPaddingV: CGFloat = 8
     static let strokeOpacity: Double = 0.12
 }

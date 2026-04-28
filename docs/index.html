@@ -353,14 +353,20 @@
     document.querySelectorAll('.copy-btn').forEach(function(btn) {
         btn.addEventListener('click', function() {
             var cmd = this.getAttribute('data-cmd');
-            navigator.clipboard.writeText(cmd).then(function() {
-                btn.textContent = '✓';
-                btn.style.color = 'var(--success)';
-                setTimeout(function() {
-                    btn.textContent = '';
-                    btn.style.color = '';
-                }, 1500);
-            });
+            var ta = document.createElement('textarea');
+            ta.value = cmd;
+            ta.style.position = 'fixed';
+            ta.style.left = '-9999px';
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+            btn.textContent = '✓';
+            btn.style.color = 'var(--success)';
+            setTimeout(function() {
+                btn.textContent = '';
+                btn.style.color = '';
+            }, 1500);
         });
     });
 </script>

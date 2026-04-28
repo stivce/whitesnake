@@ -29,7 +29,7 @@
     <key>SUFeedURL</key>
     <string>https://raw.githubusercontent.com/stivce/whitesnake/main/appcast.xml</string>
     <key>SUPublicEDKey</key>
-    <string>REPLACE_WITH_PUBLIC_KEY</string>
+    <string>Tbwh5CVTQBLgR4K4TbZbeb454BNtU88kiElKdMqaXCY=</string>
     <key>SUEnableAutomaticChecks</key>
     <true/>
 </dict>

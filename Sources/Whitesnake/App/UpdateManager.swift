@@ -6,6 +6,7 @@ final class UpdateManager: NSObject, ObservableObject {
     @Published private(set) var availableVersion: String?
 
     private var updaterController: SPUStandardUpdaterController!
+    private var hasChecked = false
 
     var currentVersion: String {
         Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—"
@@ -18,6 +19,16 @@ final class UpdateManager: NSObject, ObservableObject {
             updaterDelegate: self,
             userDriverDelegate: nil
         )
+        // Silent background check on launch
+        Task {
+            try? await Task.sleep(for: .seconds(2))
+            await checkForUpdatesSilently()
+        }
+    }
+
+    private func checkForUpdatesSilently() async {
+        guard let updater = updaterController.updater else { return }
+        await updater.checkForUpdatesInBackground()
     }
 
     func installUpdate() {

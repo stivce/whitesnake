@@ -276,19 +276,16 @@
         <div class="requirements">
             <p style="margin-bottom: 16px; font-size: 15px; color: var(--text-secondary);">
                 Since Whitesnake is an open-source personal project, it is not notarized by Apple.
-                macOS may say the app is "damaged" — this is a misleading message for unsigned apps.
-                Here's how to fix it:
+                macOS will warn that the app is from an "unidentified developer." Here's how to open it:
             </p>
             <ol style="padding-left: 20px; list-style: decimal; color: var(--text-secondary); font-size: 15px; line-height: 1.8;">
                 <li>Open the DMG and drag <strong>Whitesnake.app</strong> into your <strong>Applications</strong> folder</li>
-                <li>Open <strong>Terminal</strong> and run:</li>
-            </ol>
-            <code style="display: block; background: var(--bg); border: 1px solid var(--border); padding: 12px 16px; border-radius: 8px; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 14px; color: var(--success); margin: 0 20px 16px;">xattr -cr /Applications/Whitesnake.app</code>
-            <ol start="3" style="padding-left: 20px; list-style: decimal; color: var(--text-secondary); font-size: 15px; line-height: 1.8;">
-                <li>Open Whitesnake from Applications</li>
+                <li><strong>Right-click</strong> (or Control-click) on Whitesnake.app</li>
+                <li>Select <strong>"Open"</strong> from the context menu</li>
+                <li>Click <strong>"Open"</strong> in the dialog that appears</li>
             </ol>
             <p style="margin-top: 16px; font-size: 14px; color: var(--text-secondary);">
-                The <code style="color: var(--text-primary);">-cr</code> flag recursively clears all quarantine attributes. You only need to do this once.
+                You only need to do this once. After that, the app opens normally.
             </p>
         </div>
     </div>

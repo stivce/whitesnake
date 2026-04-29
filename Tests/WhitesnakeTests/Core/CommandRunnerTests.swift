@@ -1,22 +1,21 @@
-import XCTest
+import Foundation
+import Testing
 @testable import Whitesnake
 
-final class CommandRunnerTests: XCTestCase {
-    func testRejectsRelativeExecutablePaths() async {
+@Suite
+struct CommandRunnerTests {
+    @Test
+    func rejectsRelativeExecutablePaths() async {
         let runner = CommandRunner()
         let command = Command(executableURL: URL(fileURLWithPath: "git"), arguments: ["--version"])
 
-        do {
-            _ = try await runner.run(command)
-            XCTFail("Expected invalid executable path error")
-        } catch let error as CommandRunnerError {
-            XCTAssertEqual(error, .invalidExecutablePath("git"))
-        } catch {
-            XCTFail("Unexpected error: \(error)")
+        await #expect(throws: CommandRunnerError.invalidExecutablePath("git")) {
+            try await runner.run(command)
         }
     }
 
-    func testCapturesStandardOutput() async throws {
+    @Test
+    func capturesStandardOutput() async throws {
         let runner = CommandRunner()
         let result = try await runner.run(
             Command(
@@ -26,12 +25,13 @@ final class CommandRunnerTests: XCTestCase {
             )
         )
 
-        XCTAssertEqual(result.exitCode, 0)
-        XCTAssertEqual(result.stdout, "hello")
-        XCTAssertTrue(result.stderr.isEmpty)
+        #expect(result.exitCode == 0)
+        #expect(result.stdout == "hello")
+        #expect(result.stderr.isEmpty)
     }
 
-    func testTimesOutLongRunningCommands() async {
+    @Test
+    func timesOutLongRunningCommands() async {
         let runner = CommandRunner()
         let command = Command(
             executableURL: URL(fileURLWithPath: "/bin/sleep"),
@@ -39,13 +39,8 @@ final class CommandRunnerTests: XCTestCase {
             timeoutSeconds: 0.1
         )
 
-        do {
-            _ = try await runner.run(command)
-            XCTFail("Expected timeout error")
-        } catch let error as CommandRunnerError {
-            XCTAssertEqual(error, .timedOut("/bin/sleep"))
-        } catch {
-            XCTFail("Unexpected error: \(error)")
+        await #expect(throws: CommandRunnerError.timedOut("/bin/sleep")) {
+            try await runner.run(command)
         }
     }
 }

@@ -1,8 +1,11 @@
-import XCTest
+import Foundation
+import Testing
 @testable import Whitesnake
 
-final class GitCheckTests: XCTestCase {
-    func testReturnsOkWhenGitVersionSucceeds() async {
+@Suite
+struct GitCheckTests {
+    @Test
+    func returnsOkWhenGitVersionSucceeds() async {
         let runner = MockCommandRunner(
             results: [
                 .success(CommandResult(exitCode: 0, stdout: "git version 2.39.0\n", stderr: ""))
@@ -12,11 +15,12 @@ final class GitCheckTests: XCTestCase {
 
         let result = await check.check()
 
-        XCTAssertEqual(result.status, .ok)
-        XCTAssertEqual(result.details, "git version 2.39.0")
+        #expect(result.status == .ok)
+        #expect(result.details == "git version 2.39.0")
     }
 
-    func testReturnsMissingWhenNoGitBinaryLaunches() async {
+    @Test
+    func returnsMissingWhenNoGitBinaryLaunches() async {
         let runner = MockCommandRunner(
             results: [
                 .failure(CommandRunnerError.launchFailed("missing")),
@@ -27,23 +31,19 @@ final class GitCheckTests: XCTestCase {
 
         let result = await check.check()
 
-        XCTAssertEqual(result.status, .missing)
+        #expect(result.status == .missing)
     }
 
-    func testFixThrowsWhenHomebrewIsMissing() async {
+    @Test
+    func fixThrowsWhenHomebrewIsMissing() async {
         let runner = MockCommandRunner(results: [])
         let check = GitCheck(
             commandRunner: runner,
             brewURL: URL(fileURLWithPath: "/tmp/whitesnake-tests/nonexistent-brew")
         )
 
-        do {
+        await #expect(throws: GitCheckError.homebrewMissing) {
             try await check.fix()
-            XCTFail("Expected missing Homebrew error")
-        } catch let error as GitCheckError {
-            XCTAssertEqual(error, .homebrewMissing)
-        } catch {
-            XCTFail("Unexpected error: \(error)")
         }
     }
 }

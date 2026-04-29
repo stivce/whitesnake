@@ -46,6 +46,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
 enum AppPage: Hashable {
     case dashboard
+    case generateKey
     case cloneRepo
 }
 
@@ -82,14 +83,29 @@ struct WhitesnakeApp: App {
                     DashboardView(
                         viewModel: viewModel,
                         updateManager: updateManager,
-                        onNext: { currentPage = .cloneRepo }
+                        onNext: { currentPage = .generateKey }
                     )
                     .transition(.asymmetric(insertion: .move(edge: .leading), removal: .move(edge: .leading)))
                 }
+
+                if currentPage == .generateKey {
+                    GenerateKeyView(
+                        commandRunner: commandRunner,
+                        onBack: { currentPage = .dashboard },
+                        onNext: { currentPage = .cloneRepo }
+                    )
+                    .transition(
+                        .asymmetric(
+                            insertion: .move(edge: .trailing),
+                            removal: .move(edge: .leading)
+                        )
+                    )
+                }
+
                 if currentPage == .cloneRepo {
                     CloneRepoView(
                         commandRunner: commandRunner,
-                        onBack: { currentPage = .dashboard }
+                        onBack: { currentPage = .generateKey }
                     )
                     .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .trailing)))
                 }

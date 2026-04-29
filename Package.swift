@@ -15,6 +15,7 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/sparkle-project/Sparkle", from: "2.7.0"),
+        .package(url: "https://github.com/apple/swift-testing", from: "0.9.0"),
     ],
     targets: [
         .executableTarget(
@@ -25,7 +26,10 @@ let package = Package(
         ),
         .testTarget(
             name: "WhitesnakeTests",
-            dependencies: ["Whitesnake"]
+            dependencies: [
+                "Whitesnake",
+                .product(name: "Testing", package: "swift-testing")
+            ]
         ),
     ],
     swiftLanguageModes: [.v6]

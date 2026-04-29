@@ -1,9 +1,11 @@
-import XCTest
+import Testing
 @testable import Whitesnake
 
 @MainActor
-final class DashboardViewModelTests: XCTestCase {
-    func testRefreshMarksItemCheckingBeforeCompleting() async {
+@Suite
+struct DashboardViewModelTests {
+    @Test
+    func refreshMarksItemCheckingBeforeCompleting() async {
         let check = MockSystemCheck(
             id: "git",
             title: "Git",
@@ -16,16 +18,17 @@ final class DashboardViewModelTests: XCTestCase {
         }
 
         await Task.yield()
-        XCTAssertEqual(viewModel.items[0].status, .checking)
+        #expect(viewModel.items[0].status == .checking)
 
         check.resumeCheck()
         await task.value
 
-        XCTAssertEqual(viewModel.items[0].status, .ok)
-        XCTAssertEqual(viewModel.items[0].details, "git version 2.39.0")
+        #expect(viewModel.items[0].status == .ok)
+        #expect(viewModel.items[0].details == "git version 2.39.0")
     }
 
-    func testFixRunsFixThenRefreshesStatus() async {
+    @Test
+    func fixRunsFixThenRefreshesStatus() async {
         let check = MockSystemCheck(
             id: "git",
             title: "Git",
@@ -35,9 +38,9 @@ final class DashboardViewModelTests: XCTestCase {
 
         await viewModel.fix(checkID: "git")
 
-        XCTAssertEqual(check.fixCallCount, 1)
-        XCTAssertEqual(check.checkCallCount, 1)
-        XCTAssertEqual(viewModel.items[0].status, .ok)
+        #expect(check.fixCallCount == 1)
+        #expect(check.checkCallCount == 1)
+        #expect(viewModel.items[0].status == .ok)
     }
 }
 

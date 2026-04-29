@@ -65,7 +65,9 @@ struct MacOSUpdateCheck: SystemCheck {
         REMAINING=$(/usr/sbin/softwareupdate -l 2>&1 | /usr/bin/grep -c "Recommended: YES" || true)
         if [ "$REMAINING" -gt 0 ]; then
             USER_NAME=$(/usr/bin/stat -f%Su /dev/console)
-            /usr/bin/sudo -u "$USER_NAME" /usr/bin/open "x-apple.systempreferences:com.apple.Software-Update-Settings.extension"
+            USER_ID=$(/usr/bin/id -u "$USER_NAME")
+            /bin/launchctl asuser "$USER_ID" /usr/bin/open "x-apple.systempreferences:com.apple.Software-Update-Settings.extension"
+            /bin/launchctl asuser "$USER_ID" /usr/bin/osascript -e 'tell application "System Settings" to activate' || true
             echo "MAJOR_UPGRADE_PENDING"
         fi
         """

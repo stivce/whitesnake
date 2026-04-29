@@ -10,6 +10,12 @@ final class CloneRepoViewModel: ObservableObject {
     @Published private(set) var availableBranches: [String] = []
     @Published var selectedBranch: String?
     @Published private(set) var isLoadingBranches = true
+    @Published private(set) var availableRoles: [PlaybookRole] = []
+    @Published var selectedRoleTags: Set<String> = []
+    @Published private(set) var isLoadingRoles = false
+    @Published private(set) var isRunning = false
+    @Published private(set) var runResult: RunResult?
+    @Published private(set) var hasCloned = false
 
     let repoURL = "https://github.com/stivce/mac.config.git"
 
@@ -23,6 +29,9 @@ final class CloneRepoViewModel: ObservableObject {
             .appendingPathComponent("Downloads/mac.config")
             .path
         checkIfRepoExists()
+        if repoExists {
+            fetchRoles()
+        }
         fetchBranches()
     }
 
@@ -60,6 +69,56 @@ final class CloneRepoViewModel: ObservableObject {
             } catch {
                 await MainActor.run {
                     self.isLoadingBranches = false
+                }
+            }
+        }
+    }
+
+    func fetchRoles() {
+        guard FileManager.default.fileExists(atPath: targetDir) else { return }
+        isLoadingRoles = true
+
+        Task {
+            do {
+                let playbookPath = "\(targetDir)/playbook.yml"
+                let result = try await commandRunner.run(
+                    Command(
+                        executableURL: URL(fileURLWithPath: "/bin/cat"),
+                        arguments: [playbookPath],
+                        timeoutSeconds: 5
+                    )
+                )
+
+                var roles: [PlaybookRole] = []
+                var currentRole: String?
+                var currentTags: [String] = []
+
+                for line in result.stdout.split(whereSeparator: \.isNewline) {
+                    let trimmed = line.trimmingCharacters(in: .whitespaces)
+
+                    if trimmed.hasPrefix("- role:"), let role = trimmed.split(separator: ":").dropFirst().first {
+                        if let r = currentRole {
+                            roles.append(PlaybookRole(name: r, tags: currentTags.isEmpty ? [r] : currentTags))
+                        }
+                        currentRole = String(role.trimmingCharacters(in: .whitespaces))
+                        currentTags = []
+                    } else if trimmed.hasPrefix("tags:"), let tagStr = trimmed.split(separator: "[").last?.split(separator: "]").first {
+                        currentTags = tagStr.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
+                    }
+                }
+
+                if let r = currentRole {
+                    roles.append(PlaybookRole(name: r, tags: currentTags.isEmpty ? [r] : currentTags))
+                }
+
+                await MainActor.run {
+                    self.availableRoles = roles
+                    self.selectedRoleTags = Set(roles.flatMap(\.tags))
+                    self.isLoadingRoles = false
+                }
+            } catch {
+                await MainActor.run {
+                    self.isLoadingRoles = false
                 }
             }
         }
@@ -108,6 +167,8 @@ final class CloneRepoViewModel: ObservableObject {
             if result.exitCode == 0 {
                 cloneResult = .success("Cloned to \(targetDir)")
                 repoExists = true
+                hasCloned = true
+                fetchRoles()
             } else {
                 let stderr = result.stderr.trimmingCharacters(in: .whitespacesAndNewlines)
                 cloneResult = .failure(stderr.isEmpty ? "git clone exited \(result.exitCode)" : stderr)
@@ -116,9 +177,61 @@ final class CloneRepoViewModel: ObservableObject {
             cloneResult = .failure(error.localizedDescription)
         }
     }
+
+    func runSelectedRoles() async {
+        guard !isRunning && !selectedRoleTags.isEmpty else { return }
+        isRunning = true
+        runResult = nil
+        defer { isRunning = false }
+
+        let tagsArg = selectedRoleTags.joined(separator: ",")
+        let script = "cd \"\(targetDir)\" && /opt/homebrew/bin/ansible-playbook playbook.yml --tags \"\(tagsArg)\""
+
+        do {
+            let result = try await commandRunner.run(
+                Command(
+                    executableURL: URL(fileURLWithPath: "/bin/sh"),
+                    arguments: ["-c", script],
+                    timeoutSeconds: 600
+                )
+            )
+
+            if result.exitCode == 0 {
+                runResult = .success("All selected roles applied successfully")
+            } else {
+                let stderr = result.stderr.trimmingCharacters(in: .whitespacesAndNewlines)
+                runResult = .failure(stderr.isEmpty ? "ansible-playbook exited \(result.exitCode)" : stderr)
+            }
+        } catch {
+            runResult = .failure(error.localizedDescription)
+        }
+    }
+}
+
+struct PlaybookRole: Identifiable {
+    let id = UUID()
+    let name: String
+    let tags: [String]
 }
 
 enum CloneResult: Equatable {
+    case success(String)
+    case failure(String)
+
+    var message: String {
+        switch self {
+        case let .success(message), let .failure(message):
+            return message
+        }
+    }
+
+    var isSuccess: Bool {
+        if case .success = self { return true }
+        return false
+    }
+}
+
+enum RunResult: Equatable {
     case success(String)
     case failure(String)
 
@@ -194,6 +307,16 @@ struct CloneRepoView: View {
                 resultBanner(result)
             }
 
+            if model.repoExists || model.hasCloned {
+                rolesSection
+
+                runFooterRow(isCompact: isCompact)
+            }
+
+            if let result = model.runResult {
+                runResultBanner(result)
+            }
+
             Spacer(minLength: 0)
 
             footerRow(isCompact: isCompact)
@@ -204,7 +327,20 @@ struct CloneRepoView: View {
         if model.isCloning {
             return "Cloning…"
         }
-        return model.repoExists ? "Overwrite" : "Clone"
+        if model.isRunning {
+            return "Running…"
+        }
+        if model.repoExists {
+            return "Overwrite"
+        }
+        return "Clone"
+    }
+
+    private var runButtonTitle: String {
+        if model.isRunning {
+            return "Running…"
+        }
+        return "Run Selected"
     }
 
     @ViewBuilder
@@ -225,9 +361,31 @@ struct CloneRepoView: View {
 
             FixAllButton(
                 title: buttonTitle,
-                isEnabled: !model.isCloning
+                isEnabled: !model.isCloning && !model.isRunning
             ) {
                 Task { await model.clone(forceOverwrite: model.repoExists) }
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, Design.rowPaddingH)
+        .padding(.vertical, 11)
+        .background(.white.opacity(0.045), in: RoundedRectangle(cornerRadius: Design.rowCornerRadius, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: Design.rowCornerRadius, style: .continuous)
+                .strokeBorder(.white.opacity(Design.strokeOpacity), lineWidth: 1)
+        }
+    }
+
+    @ViewBuilder
+    private func runFooterRow(isCompact: Bool) -> some View {
+        HStack(alignment: .center) {
+            Spacer()
+
+            FixAllButton(
+                title: runButtonTitle,
+                isEnabled: !model.isRunning && !model.selectedRoleTags.isEmpty
+            ) {
+                Task { await model.runSelectedRoles() }
             }
         }
         .frame(maxWidth: .infinity)
@@ -319,7 +477,62 @@ struct CloneRepoView: View {
         }
     }
 
+    @ViewBuilder
+    private var rolesSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("Roles")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(.tertiary)
+
+                Spacer()
+
+                Text("\(model.selectedRoleTags.count) selected")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(.secondary)
+            }
+
+            if model.isLoadingRoles {
+                HStack(spacing: 8) {
+                    ProgressView()
+                        .scaleEffect(0.8)
+                    Text("Loading roles…")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
+            } else {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 140))], spacing: 6) {
+                    ForEach(model.availableRoles) { role in
+                        RoleCheckbox(role: role, selectedTags: $model.selectedRoleTags)
+                    }
+                }
+            }
+        }
+        .padding(14)
+        .background(.white.opacity(0.045), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .strokeBorder(.white.opacity(0.1), lineWidth: 1)
+        }
+    }
+
     private func resultBanner(_ result: CloneResult) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: result.isSuccess ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
+                .foregroundStyle(result.isSuccess ? .green : .orange)
+            Text(result.message)
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(.secondary)
+                .lineLimit(2)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(.white.opacity(0.04), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+    }
+
+    private func runResultBanner(_ result: RunResult) -> some View {
         HStack(spacing: 8) {
             Image(systemName: result.isSuccess ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
                 .foregroundStyle(result.isSuccess ? .green : .orange)
@@ -455,6 +668,63 @@ private struct BranchRow: View {
                     ? AnyShapeStyle(.white.opacity(0.08))
                     : AnyShapeStyle(Color.clear),
                 in: RoundedRectangle(cornerRadius: 8, style: .continuous)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+private struct RoleCheckbox: View {
+    let role: PlaybookRole
+    @Binding var selectedTags: Set<String>
+
+    var isSelected: Bool {
+        role.tags.allSatisfy { selectedTags.contains($0) }
+    }
+
+    var body: some View {
+        Button {
+            if isSelected {
+                for tag in role.tags {
+                    selectedTags.remove(tag)
+                }
+            } else {
+                for tag in role.tags {
+                    selectedTags.insert(tag)
+                }
+            }
+        } label: {
+            HStack(spacing: 8) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 4, style: .continuous)
+                        .strokeBorder(.white.opacity(0.25), lineWidth: 1.5)
+                        .frame(width: 16, height: 16)
+
+                    if isSelected {
+                        RoundedRectangle(cornerRadius: 3, style: .continuous)
+                            .fill(Color.cyan)
+                            .frame(width: 12, height: 12)
+
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundStyle(.white)
+                    }
+                }
+
+                Text(role.name)
+                    .font(.system(size: 11, weight: .medium, design: .monospaced))
+                    .foregroundStyle(isSelected ? .primary : .secondary)
+                    .lineLimit(1)
+
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 8)
+            .background(
+                isSelected
+                    ? AnyShapeStyle(.white.opacity(0.08))
+                    : AnyShapeStyle(Color.clear),
+                in: RoundedRectangle(cornerRadius: 10, style: .continuous)
             )
         }
         .buttonStyle(.plain)

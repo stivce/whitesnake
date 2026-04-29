@@ -5,6 +5,7 @@ struct MacOSUpdateCheck: SystemCheck {
     let title = "macOS Update"
     let requiresAdmin = true
     let fixButtonTitle: String? = "Open"
+    let fixAllPriority: Int? = 6
 
     private let commandRunner: any CommandRunning
     private let softwareUpdateURL: URL

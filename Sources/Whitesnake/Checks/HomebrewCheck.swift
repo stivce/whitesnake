@@ -5,6 +5,7 @@ struct HomebrewCheck: SystemCheck {
     let title = "Homebrew"
     let requiresAdmin = false
     let fixButtonTitle: String? = "Open"
+    let fixAllPriority: Int? = 2
 
     private let commandRunner: any CommandRunning
     private let brewURL: URL

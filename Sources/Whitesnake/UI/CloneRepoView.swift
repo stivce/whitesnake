@@ -16,6 +16,7 @@ final class CloneRepoViewModel: ObservableObject {
     @Published private(set) var isRunning = false
     @Published private(set) var runResult: RunResult?
     @Published private(set) var hasCloned = false
+    @Published private(set) var consoleLines: [String] = []
 
     let repoURL = "https://github.com/stivce/mac.config.git"
 
@@ -182,18 +183,24 @@ final class CloneRepoViewModel: ObservableObject {
         guard !isRunning && !selectedRoleTags.isEmpty else { return }
         isRunning = true
         runResult = nil
+        consoleLines = []
         defer { isRunning = false }
 
         let tagsArg = selectedRoleTags.joined(separator: ",")
         let script = "cd \"\(targetDir)\" && /opt/homebrew/bin/ansible-playbook playbook.yml --tags \"\(tagsArg)\""
 
         do {
-            let result = try await commandRunner.run(
+            let result = try await commandRunner.runStreaming(
                 Command(
                     executableURL: URL(fileURLWithPath: "/bin/sh"),
                     arguments: ["-c", script],
                     timeoutSeconds: 600
-                )
+                ),
+                onLine: { [weak self] line in
+                    Task { @MainActor in
+                        self?.consoleLines.append("> \(line.text)")
+                    }
+                }
             )
 
             if result.exitCode == 0 {
@@ -311,6 +318,10 @@ struct CloneRepoView: View {
                 rolesSection
 
                 runFooterRow(isCompact: isCompact)
+
+                if !model.consoleLines.isEmpty || model.isRunning {
+                    debugConsole
+                }
             }
 
             if let result = model.runResult {
@@ -544,6 +555,52 @@ struct CloneRepoView: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
         .background(.white.opacity(0.04), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+    }
+
+    @ViewBuilder
+    private var debugConsole: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Output")
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(.tertiary)
+
+            ScrollViewReader { proxy in
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 2) {
+                        ForEach(model.consoleLines.indices, id: \.self) { index in
+                            Text(model.consoleLines[index])
+                                .font(.system(size: 10, weight: .regular, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                        }
+
+                        if model.isRunning {
+                            HStack(spacing: 4) {
+                                ProgressView()
+                                    .scaleEffect(0.6)
+                                Text("Running…")
+                                    .font(.system(size: 10, weight: .medium))
+                                    .foregroundStyle(.tertiary)
+                            }
+                        }
+                    }
+                    .id("bottom")
+                    .onChange(of: model.consoleLines.count) { _ in
+                        proxy.scrollTo("bottom", anchor: .bottom)
+                    }
+                }
+                .frame(maxHeight: 120)
+                .padding(8)
+                .background(.black.opacity(0.35), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+            }
+        }
+        .padding(14)
+        .background(.white.opacity(0.045), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .strokeBorder(.white.opacity(0.1), lineWidth: 1)
+        }
     }
 
     private var backgroundView: some View {

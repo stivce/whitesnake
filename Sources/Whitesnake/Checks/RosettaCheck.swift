@@ -4,7 +4,7 @@ struct RosettaCheck: SystemCheck {
     let id = "rosetta"
     let title = "Rosetta 2"
     let requiresAdmin = true
-    let fixAllPriority: Int? = 3
+    let fixAllPriority: Int? = 2
 
     private let commandRunner: any CommandRunning
     private let pgrepURL: URL

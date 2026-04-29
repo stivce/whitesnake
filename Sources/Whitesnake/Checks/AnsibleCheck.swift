@@ -4,7 +4,7 @@ struct AnsibleCheck: SystemCheck {
     let id = "ansible"
     let title = "Ansible"
     let requiresAdmin = false
-    let fixAllPriority: Int? = 5
+    let fixAllPriority: Int? = 6
 
     private let commandRunner: any CommandRunning
     private let ansibleURL: URL

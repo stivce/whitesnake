@@ -5,7 +5,7 @@ struct XcodeCLTCheck: SystemCheck {
     let title = "Xcode Command Line Tools"
     let requiresAdmin = true
     let fixButtonTitle: String? = "Install"
-    let fixAllPriority: Int? = 1
+    let fixAllPriority: Int? = 3
 
     private let commandRunner: any CommandRunning
     private let xcodeSelectURL: URL

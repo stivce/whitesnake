@@ -18,7 +18,7 @@ struct GitCheck: SystemCheck {
     let id = "git"
     let title = "Git"
     let requiresAdmin = false
-    let fixAllPriority: Int? = 4
+    let fixAllPriority: Int? = 5
 
     private let commandRunner: any CommandRunning
     private let systemGitURL: URL

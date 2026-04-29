@@ -4,32 +4,26 @@ struct MacOSUpdateCheck: SystemCheck {
     let id = "macos-update"
     let title = "macOS Update"
     let requiresAdmin = true
-    let fixButtonTitle: String? = "Open"
+    let fixButtonTitle: String? = "Update"
     let fixAllPriority: Int? = 6
 
     private let commandRunner: any CommandRunning
     private let softwareUpdateURL: URL
-    private let openURL: URL
-    private let settingsURL: String
 
     init(
         commandRunner: any CommandRunning,
-        softwareUpdateURL: URL = URL(fileURLWithPath: "/usr/sbin/softwareupdate"),
-        openURL: URL = CheckSupport.openURL,
-        settingsURL: String = "x-apple.systempreferences:com.apple.Software-Update-Settings.extension"
+        softwareUpdateURL: URL = URL(fileURLWithPath: "/usr/sbin/softwareupdate")
     ) {
         self.commandRunner = commandRunner
         self.softwareUpdateURL = softwareUpdateURL
-        self.openURL = openURL
-        self.settingsURL = settingsURL
     }
 
     var fixConfirmationTitle: String {
-        "Open System Settings?"
+        "Install macOS updates?"
     }
 
     var fixConfirmationMessage: String {
-        "macOS updates are handled manually because they may require a reboot. Whitesnake will open Software Update settings for you."
+        "Whitesnake will install all available macOS updates. Some may require a restart afterward."
     }
 
     func check() async -> CheckResult {
@@ -56,20 +50,28 @@ struct MacOSUpdateCheck: SystemCheck {
     }
 
     func fix() async throws {
-        let result = try await commandRunner.run(
-            Command(executableURL: openURL, arguments: [settingsURL], timeoutSeconds: 10)
+        try await fix(progressHandler: { _ in })
+    }
+
+    func fix(progressHandler: @escaping @Sendable (InstallProgress) -> Void) async throws {
+        progressHandler(InstallProgress(stage: .preparing, fractionCompleted: 0.1, message: "Requesting administrator approval"))
+
+        let script = "/usr/sbin/softwareupdate -ia --agree-to-license"
+
+        progressHandler(InstallProgress(stage: .installing, fractionCompleted: 0.4, message: "Installing macOS updates"))
+
+        let result = try await commandRunner.runPrivileged(
+            scriptBody: script,
+            prompt: "Whitesnake needs to install macOS updates",
+            timeoutSeconds: 3600
         )
 
         guard result.exitCode == 0 else {
             throw InstallCheckError.commandFailed(
-                CheckSupport.failureMessage(result, fallback: "Failed to open Software Update settings.")
+                CheckSupport.failureMessage(result, fallback: "macOS update installation failed.")
             )
         }
-    }
 
-    func fix(progressHandler: @escaping @Sendable (InstallProgress) -> Void) async throws {
-        progressHandler(InstallProgress(stage: .preparing, fractionCompleted: 0.1, message: "Opening Software Update settings"))
-        try await fix()
-        progressHandler(InstallProgress(stage: .waitingForUser, fractionCompleted: 0.25, message: "Software Update settings opened"))
+        progressHandler(InstallProgress(stage: .verifying, fractionCompleted: 1.0, message: "macOS updates installed"))
     }
 }

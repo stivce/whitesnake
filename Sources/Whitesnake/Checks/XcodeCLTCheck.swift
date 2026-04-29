@@ -3,7 +3,8 @@ import Foundation
 struct XcodeCLTCheck: SystemCheck {
     let id = "xcode-clt"
     let title = "Xcode Command Line Tools"
-    let requiresAdmin = false
+    let requiresAdmin = true
+    let fixButtonTitle: String? = "Install"
     let fixAllPriority: Int? = 1
 
     private let commandRunner: any CommandRunning
@@ -44,35 +45,42 @@ struct XcodeCLTCheck: SystemCheck {
     }
 
     func fix() async throws {
-        let result = try await commandRunner.run(
-            Command(executableURL: xcodeSelectURL, arguments: ["--install"], timeoutSeconds: 10)
+        try await fix(progressHandler: { _ in })
+    }
+
+    func fix(progressHandler: @escaping @Sendable (InstallProgress) -> Void) async throws {
+        progressHandler(InstallProgress(stage: .preparing, fractionCompleted: 0.1, message: "Requesting administrator approval"))
+
+        let script = """
+        set -e
+        PLACEHOLDER=/tmp/.com.apple.dt.CommandLineTools.installondemand.in-progress
+        /usr/bin/touch "$PLACEHOLDER"
+        PROD=$(/usr/sbin/softwareupdate -l 2>&1 | /usr/bin/grep -E "\\\\*.*Command Line Tools" | /usr/bin/tail -n 1 | /usr/bin/sed -E 's/^ *\\* *Label: //' | /usr/bin/sed -E 's/^ *//')
+        if [ -z "$PROD" ]; then
+            /bin/rm -f "$PLACEHOLDER"
+            echo "No Command Line Tools package available from softwareupdate"
+            exit 1
+        fi
+        /usr/sbin/softwareupdate -i "$PROD" --verbose
+        STATUS=$?
+        /bin/rm -f "$PLACEHOLDER"
+        exit $STATUS
+        """
+
+        progressHandler(InstallProgress(stage: .installing, fractionCompleted: 0.4, message: "Installing Command Line Tools"))
+
+        let result = try await commandRunner.runPrivileged(
+            scriptBody: script,
+            prompt: "Whitesnake needs to install Xcode Command Line Tools",
+            timeoutSeconds: 1800
         )
 
         guard result.exitCode == 0 else {
             throw InstallCheckError.commandFailed(
-                CheckSupport.failureMessage(result, fallback: "Failed to start Xcode Command Line Tools installation.")
-            )
-        }
-    }
-
-    func fix(progressHandler: @escaping @Sendable (InstallProgress) -> Void) async throws {
-        let parser = XcodeCLTInstallProgressParser()
-        progressHandler(parser.initialProgress)
-
-        let result = try await commandRunner.runStreaming(
-            Command(executableURL: xcodeSelectURL, arguments: ["--install"], timeoutSeconds: 10)
-        ) { line in
-            if let progress = parser.process(line) {
-                progressHandler(progress)
-            }
-        }
-
-        guard result.exitCode == 0 else {
-            throw InstallCheckError.commandFailed(
-                CheckSupport.failureMessage(result, fallback: "Failed to start Xcode Command Line Tools installation.")
+                CheckSupport.failureMessage(result, fallback: "Xcode Command Line Tools installation failed.")
             )
         }
 
-        progressHandler(InstallProgress(stage: .waitingForUser, fractionCompleted: 0.28, message: "Waiting for the macOS installer dialog"))
+        progressHandler(InstallProgress(stage: .verifying, fractionCompleted: 1.0, message: "Command Line Tools installed"))
     }
 }

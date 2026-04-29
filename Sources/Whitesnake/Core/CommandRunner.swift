@@ -21,6 +21,27 @@ struct CommandResult: Sendable, Equatable {
 protocol CommandRunning: Sendable {
     func run(_ command: Command) async throws -> CommandResult
     func runStreaming(_ command: Command, onLine: @escaping @Sendable (CommandOutputLine) -> Void) async throws -> CommandResult
+    func runPrivileged(scriptBody: String, prompt: String, timeoutSeconds: TimeInterval) async throws -> CommandResult
+}
+
+extension CommandRunning {
+    func runPrivileged(scriptBody: String, prompt: String, timeoutSeconds: TimeInterval = 1800) async throws -> CommandResult {
+        let escapedScript = scriptBody
+            .replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "\"", with: "\\\"")
+        let escapedPrompt = prompt
+            .replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "\"", with: "\\\"")
+        let appleScript = "do shell script \"\(escapedScript)\" with prompt \"\(escapedPrompt)\" with administrator privileges"
+
+        return try await run(
+            Command(
+                executableURL: URL(fileURLWithPath: "/usr/bin/osascript"),
+                arguments: ["-e", appleScript],
+                timeoutSeconds: timeoutSeconds
+            )
+        )
+    }
 }
 
 enum CommandRunnerError: Error, Equatable, LocalizedError {

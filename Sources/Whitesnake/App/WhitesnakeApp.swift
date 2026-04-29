@@ -56,18 +56,20 @@ struct WhitesnakeApp: App {
     @StateObject private var updateManager = UpdateManager()
     @State private var currentPage: AppPage = .dashboard
 
-    private let commandRunner = CommandRunner()
+    private static let sharedRunner = CommandRunner()
+    private var commandRunner: any CommandRunning { Self.sharedRunner }
 
     init() {
+        let runner = Self.sharedRunner
         _viewModel = StateObject(
             wrappedValue: DashboardViewModel(
                 checks: [
-                    MacOSUpdateCheck(commandRunner: CommandRunner()),
-                    XcodeCLTCheck(commandRunner: CommandRunner()),
-                    HomebrewCheck(commandRunner: CommandRunner()),
-                    RosettaCheck(commandRunner: CommandRunner()),
-                    GitCheck(commandRunner: CommandRunner()),
-                    AnsibleCheck(commandRunner: CommandRunner())
+                    MacOSUpdateCheck(commandRunner: runner),
+                    XcodeCLTCheck(commandRunner: runner),
+                    HomebrewCheck(commandRunner: runner),
+                    RosettaCheck(commandRunner: runner),
+                    GitCheck(commandRunner: runner),
+                    AnsibleCheck(commandRunner: runner)
                 ]
             )
         )

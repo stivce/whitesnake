@@ -55,4 +55,10 @@ extension UpdateManager: SPUUpdaterDelegate {
             self.availableVersion = nil
         }
     }
+
+    nonisolated func updaterDidNotFindUpdate(_ updater: SPUUpdater, error: Error) {
+        Task { @MainActor in
+            self.availableVersion = nil
+        }
+    }
 }

@@ -45,7 +45,7 @@ struct CheckRowView: View {
                         }
                     }
 
-                    if !isInstalling, item.canFix, let title = item.fixButtonTitle {
+                    if !isInstalling, item.canFix, let title = effectiveFixButtonTitle {
                         fixButton(title: title)
                     }
                 }
@@ -62,7 +62,7 @@ struct CheckRowView: View {
 
                     if isInstalling {
                         installingBadge
-                    } else if item.canFix, let title = item.fixButtonTitle {
+                    } else if item.canFix, let title = effectiveFixButtonTitle {
                         fixButton(title: title)
                     }
                 }
@@ -194,6 +194,14 @@ struct CheckRowView: View {
         withAnimation(.linear(duration: 1.5).repeatForever(autoreverses: false)) {
             shimmerPhase = 1
         }
+    }
+
+    private var effectiveFixButtonTitle: String? {
+        guard let title = item.fixButtonTitle else { return nil }
+        if item.status == .updateAvailable, title == "Install" {
+            return "Update"
+        }
+        return title
     }
 
     private var installingLabel: String {

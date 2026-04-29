@@ -5,8 +5,7 @@ import Sparkle
 final class UpdateManager: NSObject, ObservableObject {
     @Published private(set) var availableVersion: String?
 
-    private var updaterController: SPUStandardUpdaterController!
-    private var hasChecked = false
+    private var updater: SPUUpdater!
 
     var currentVersion: String {
         Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—"
@@ -14,28 +13,31 @@ final class UpdateManager: NSObject, ObservableObject {
 
     override init() {
         super.init()
-        updaterController = SPUStandardUpdaterController(
-            startingUpdater: true,
-            updaterDelegate: self,
-            userDriverDelegate: nil
+        updater = SPUUpdater(
+            hostBundle: Bundle.main,
+            applicationBundle: Bundle.main,
+            userDriver: SPUStandardUserDriver(hostBundle: Bundle.main, delegate: nil),
+            delegate: self
         )
+
+        try? updater.start()
+
         // Silent background check on launch
         Task {
             try? await Task.sleep(for: .seconds(2))
-            self.updaterController.updater.checkForUpdatesInBackground()
+            self.updater.checkForUpdatesInBackground()
         }
     }
 
     func installUpdate() {
-        updaterController.checkForUpdates(nil)
+        updater.checkForUpdates()
     }
 }
 
 extension UpdateManager: SPUUpdaterDelegate {
     nonisolated func updater(_ updater: SPUUpdater, didFindValidUpdate item: SUAppcastItem) {
-        let version = item.displayVersionString
         Task { @MainActor in
-            self.availableVersion = version
+            self.availableVersion = item.displayVersionString
         }
     }
 

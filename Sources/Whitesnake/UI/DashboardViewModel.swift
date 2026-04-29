@@ -33,6 +33,7 @@ struct DashboardCheckItem: Identifiable, Equatable {
 @MainActor
 final class DashboardViewModel: ObservableObject {
     @Published private(set) var items: [DashboardCheckItem]
+    private(set) var hasLoaded = false
 
     private let checks: [any SystemCheck]
 
@@ -76,6 +77,8 @@ final class DashboardViewModel: ObservableObject {
     }
 
     func refreshAll() async {
+        guard !hasLoaded else { return }
+        hasLoaded = true
         for check in checks {
             updateStatus(for: check.id, status: .checking, details: nil, installProgress: nil)
             let result = await check.check()

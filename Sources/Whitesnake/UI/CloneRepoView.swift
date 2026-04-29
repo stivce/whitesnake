@@ -6,13 +6,63 @@ final class CloneRepoViewModel: ObservableObject {
     @Published private(set) var didCopy = false
     @Published private(set) var isCloning = false
     @Published private(set) var cloneResult: CloneResult?
+    @Published private(set) var repoExists = false
+    @Published private(set) var availableBranches: [String] = []
+    @Published var selectedBranch: String?
+    @Published private(set) var isLoadingBranches = true
 
     let repoURL = "https://github.com/stivce/mac.config.git"
 
     private let commandRunner: any CommandRunning
+    private let targetDir: String
 
     init(commandRunner: any CommandRunning) {
         self.commandRunner = commandRunner
+        self.targetDir = FileManager.default
+            .homeDirectoryForCurrentUser
+            .appendingPathComponent("Downloads/mac.config")
+            .path
+        checkIfRepoExists()
+        fetchBranches()
+    }
+
+    private func checkIfRepoExists() {
+        repoExists = FileManager.default.fileExists(atPath: targetDir)
+    }
+
+    func fetchBranches() {
+        Task {
+            do {
+                let result = try await commandRunner.run(
+                    Command(
+                        executableURL: URL(fileURLWithPath: "/usr/bin/git"),
+                        arguments: ["ls-remote", "--heads", repoURL],
+                        timeoutSeconds: 15
+                    )
+                )
+
+                var branches: [String] = []
+                for line in result.stdout.split(whereSeparator: \.isNewline) {
+                    let parts = line.split(separator: "\t")
+                    if parts.count == 2 {
+                        let ref = parts[1]
+                        if let branch = ref.split(separator: "/").last {
+                            branches.append(String(branch))
+                        }
+                    }
+                }
+
+                await MainActor.run {
+                    self.availableBranches = branches.sorted()
+                    self.selectedBranch = branches.contains("main") ? "main" : branches.first
+                    self.isLoadingBranches = false
+                }
+            } catch {
+                await MainActor.run {
+                    self.isLoadingBranches = false
+                }
+            }
+        }
     }
 
     func copyURL() {
@@ -27,7 +77,7 @@ final class CloneRepoViewModel: ObservableObject {
         }
     }
 
-    func clone() async {
+    func clone(forceOverwrite: Bool) async {
         guard !isCloning else { return }
         isCloning = true
         cloneResult = nil
@@ -37,9 +87,14 @@ final class CloneRepoViewModel: ObservableObject {
             .homeDirectoryForCurrentUser
             .appendingPathComponent("Downloads")
             .path
-        let target = "\(downloadsDir)/mac.config"
 
-        let script = "cd \"\(downloadsDir)\" && /usr/bin/git clone \(repoURL)"
+        let removeIfNeeded = forceOverwrite
+            ? "/bin/rm -rf \"\(downloadsDir)/mac.config\" && "
+            : ""
+
+        let branchArg = selectedBranch.flatMap { " -b \($0)" } ?? ""
+
+        let script = "cd \"\(downloadsDir)\" && \(removeIfNeeded)/usr/bin/git clone\(branchArg) \(repoURL)"
 
         do {
             let result = try await commandRunner.run(
@@ -51,7 +106,8 @@ final class CloneRepoViewModel: ObservableObject {
             )
 
             if result.exitCode == 0 {
-                cloneResult = .success("Cloned to \(target)")
+                cloneResult = .success("Cloned to \(targetDir)")
+                repoExists = true
             } else {
                 let stderr = result.stderr.trimmingCharacters(in: .whitespacesAndNewlines)
                 cloneResult = .failure(stderr.isEmpty ? "git clone exited \(result.exitCode)" : stderr)
@@ -120,23 +176,19 @@ struct CloneRepoView: View {
 
     @ViewBuilder
     private func headerCard(isCompact: Bool) -> some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Clone configuration")
-                        .font(.system(size: 28, weight: .bold, design: .rounded))
+        VStack(alignment: .leading, spacing: Design.sectionSpacing) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Clone configuration")
+                    .font(.system(size: 28, weight: .bold, design: .rounded))
 
-                    Text("Pull the macOS configuration repo into your Downloads folder.")
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundStyle(.secondary)
-                }
-
-                Spacer()
-
-                backButton
+                Text("Pull the macOS configuration repo into your Downloads folder.")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(.secondary)
             }
 
             urlField
+
+            branchSelector
 
             if let result = model.cloneResult {
                 resultBanner(result)
@@ -144,39 +196,47 @@ struct CloneRepoView: View {
 
             Spacer(minLength: 0)
 
-            HStack {
-                Spacer()
-                FixAllButton(
-                    title: model.isCloning ? "Cloning…" : "Clone",
-                    isEnabled: !model.isCloning
-                ) {
-                    Task { await model.clone() }
+            footerRow(isCompact: isCompact)
+        }
+    }
+
+    private var buttonTitle: String {
+        if model.isCloning {
+            return "Cloning…"
+        }
+        return model.repoExists ? "Overwrite" : "Clone"
+    }
+
+    @ViewBuilder
+    private func footerRow(isCompact: Bool) -> some View {
+        HStack(alignment: .center) {
+            Button(action: onBack) {
+                HStack(spacing: 4) {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 11, weight: .semibold))
+                    Text("Back")
+                        .font(.system(size: 12, weight: .medium))
                 }
-            }
-        }
-    }
-
-    private var backButton: some View {
-        Button(action: onBack) {
-            HStack(spacing: 4) {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 11, weight: .semibold))
-                Text("Back")
-                    .font(.system(size: 12, weight: .medium))
-            }
-            .foregroundStyle(.secondary)
-        }
-        .buttonStyle(.plain)
-    }
-
-    private var titleBlock: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("Clone configuration")
-                .font(.system(size: 28, weight: .bold, design: .rounded))
-
-            Text("Pull the macOS configuration repo into your Downloads folder.")
-                .font(.system(size: 13, weight: .medium))
                 .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
+
+            Spacer(minLength: 12)
+
+            FixAllButton(
+                title: buttonTitle,
+                isEnabled: !model.isCloning
+            ) {
+                Task { await model.clone(forceOverwrite: model.repoExists) }
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, Design.rowPaddingH)
+        .padding(.vertical, 11)
+        .background(.white.opacity(0.045), in: RoundedRectangle(cornerRadius: Design.rowCornerRadius, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: Design.rowCornerRadius, style: .continuous)
+                .strokeBorder(.white.opacity(Design.strokeOpacity), lineWidth: 1)
         }
     }
 
@@ -208,6 +268,50 @@ struct CloneRepoView: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 12)
+        .background(.white.opacity(0.045), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .strokeBorder(.white.opacity(0.1), lineWidth: 1)
+        }
+    }
+
+    @ViewBuilder
+    private var branchSelector: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Branch")
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(.tertiary)
+
+            if model.isLoadingBranches {
+                HStack(spacing: 8) {
+                    ProgressView()
+                        .scaleEffect(0.8)
+                    Text("Loading branches…")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
+            } else if model.availableBranches.isEmpty {
+                Text("No branches found")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+            } else {
+                VStack(spacing: 2) {
+                    ForEach(model.availableBranches, id: \.self) { branch in
+                        BranchRow(
+                            name: branch,
+                            isSelected: model.selectedBranch == branch
+                        ) {
+                            model.selectedBranch = branch
+                        }
+                    }
+                }
+            }
+        }
+        .padding(14)
         .background(.white.opacity(0.045), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: 14, style: .continuous)
@@ -287,12 +391,14 @@ struct CloneRepoView: View {
 
 private enum Design {
     static let panelCornerRadius: CGFloat = 34
+    static let rowCornerRadius: CGFloat = 18
     static let compactBreakpoint: CGFloat = 560
     static let panelPadding: CGFloat = 32
     static let panelPaddingTop: CGFloat = 48
     static let contentPaddingH: CGFloat = 20
     static let contentPaddingTop: CGFloat = 20
     static let contentPaddingV: CGFloat = 20
+    static let rowPaddingH: CGFloat = 14
     static let sectionSpacing: CGFloat = 18
     static let strokeOpacity: Double = 0.12
 }
@@ -313,5 +419,44 @@ private struct GlassBackgroundView: NSViewRepresentable {
         nsView.material = material
         nsView.blendingMode = blendingMode
         nsView.state = .active
+    }
+}
+
+private struct BranchRow: View {
+    let name: String
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 10) {
+                ZStack {
+                    Circle()
+                        .strokeBorder(.white.opacity(0.25), lineWidth: 1.5)
+                        .frame(width: 16, height: 16)
+
+                    if isSelected {
+                        Circle()
+                            .fill(Color.cyan)
+                            .frame(width: 8, height: 8)
+                    }
+                }
+
+                Text(name)
+                    .font(.system(size: 12, weight: .medium, design: .monospaced))
+                    .foregroundStyle(isSelected ? .primary : .secondary)
+
+                Spacer()
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 6)
+            .background(
+                isSelected
+                    ? AnyShapeStyle(.white.opacity(0.08))
+                    : AnyShapeStyle(Color.clear),
+                in: RoundedRectangle(cornerRadius: 8, style: .continuous)
+            )
+        }
+        .buttonStyle(.plain)
     }
 }

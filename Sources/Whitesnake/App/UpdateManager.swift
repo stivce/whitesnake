@@ -25,12 +25,21 @@ final class UpdateManager: NSObject, ObservableObject {
         // Silent background check on launch
         Task {
             try? await Task.sleep(for: .seconds(2))
+            self.clearSparkleCache()
             self.updater.checkForUpdatesInBackground()
         }
     }
 
     func installUpdate() {
         updater.checkForUpdates()
+    }
+
+    private func clearSparkleCache() {
+        guard let bundleID = Bundle.main.bundleIdentifier else { return }
+        let cachePath = FileManager.default
+            .homeDirectoryForCurrentUser
+            .appendingPathComponent("Library/HTTPStorages/\(bundleID)")
+        try? FileManager.default.removeItem(at: cachePath)
     }
 }
 

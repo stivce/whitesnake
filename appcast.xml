@@ -7,26 +7,14 @@
         <link>https://github.com/stivce/whitesnake</link>
         <item>
             <title>Whitesnake 1.0.19</title>
-            <pubDate>Tue, 28 Apr 2026 23:47:58 +0000</pubDate>
+            <pubDate>Wed, 29 Apr 2026 05:54:15 +0000</pubDate>
             <sparkle:version>1.0.19</sparkle:version>
             <sparkle:shortVersionString>1.0.19</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
             <enclosure
                 url="https://github.com/stivce/whitesnake/releases/download/v1.0.19/Whitesnake-1.0.19.dmg"
-                sparkle:edSignature="BjOooKbaZGZDkmPeFVq/s6HYz3eb5UKBRH6M7QfobLPQkTk4OTgVxbJNGwSWZvuTDbdZeWPbg0wcc0vYC/V1Cw=="
-                length="4385905"
-                type="application/octet-stream"/>
-        </item>
-        <item>
-            <title>Whitesnake 1.0.18</title>
-            <pubDate>Tue, 28 Apr 2026 23:37:56 +0000</pubDate>
-            <sparkle:version>1.0.18</sparkle:version>
-            <sparkle:shortVersionString>1.0.18</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <enclosure
-                url="https://github.com/stivce/whitesnake/releases/download/v1.0.18/Whitesnake-1.0.18.dmg"
-                sparkle:edSignature="Vd27eS5Al2dPxg7Yf8S5rQfFiYTmm7D7/8IbReKZlatzJesk7QV10w4gUMvVKv3T+FkeSsUKVaEnHXNsLftNBA=="
-                length="4381435"
+                sparkle:edSignature="Y5DdNCbuUQa11knlKCg36mJMPETudzLpRLsqDiNjkMqrxwXOegcMFjdZ+/Cg0JDLs5UiVGHz+k56sjcHKfFCBQ=="
+                length="4386122"
                 type="application/octet-stream"/>
         </item>
     </channel>

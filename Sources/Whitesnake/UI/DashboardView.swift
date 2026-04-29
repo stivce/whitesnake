@@ -3,6 +3,7 @@ import SwiftUI
 struct DashboardView: View {
     @ObservedObject var viewModel: DashboardViewModel
     @ObservedObject var updateManager: UpdateManager
+    var onNext: () -> Void
 
     var body: some View {
         GeometryReader { geometry in
@@ -80,9 +81,7 @@ struct DashboardView: View {
         if allChecksHealthy {
             HStack {
                 Spacer()
-                FixAllButton(title: "Next", isEnabled: true) {
-                    // Reserved for future onboarding step
-                }
+                FixAllButton(title: "Next", isEnabled: true, action: onNext)
             }
         } else {
             footerPanel(isCompact: isCompact)

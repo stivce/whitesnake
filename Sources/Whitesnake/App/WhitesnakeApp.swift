@@ -42,7 +42,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
     }
+}
 
+enum AppPage: Hashable {
+    case dashboard
+    case cloneRepo
 }
 
 @main
@@ -50,18 +54,20 @@ struct WhitesnakeApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var viewModel: DashboardViewModel
     @StateObject private var updateManager = UpdateManager()
+    @State private var currentPage: AppPage = .dashboard
+
+    private let commandRunner = CommandRunner()
 
     init() {
-        let commandRunner = CommandRunner()
         _viewModel = StateObject(
             wrappedValue: DashboardViewModel(
                 checks: [
-                    MacOSUpdateCheck(commandRunner: commandRunner),
-                    XcodeCLTCheck(commandRunner: commandRunner),
-                    HomebrewCheck(commandRunner: commandRunner),
-                    RosettaCheck(commandRunner: commandRunner),
-                    GitCheck(commandRunner: commandRunner),
-                    AnsibleCheck(commandRunner: commandRunner)
+                    MacOSUpdateCheck(commandRunner: CommandRunner()),
+                    XcodeCLTCheck(commandRunner: CommandRunner()),
+                    HomebrewCheck(commandRunner: CommandRunner()),
+                    RosettaCheck(commandRunner: CommandRunner()),
+                    GitCheck(commandRunner: CommandRunner()),
+                    AnsibleCheck(commandRunner: CommandRunner())
                 ]
             )
         )
@@ -69,7 +75,24 @@ struct WhitesnakeApp: App {
 
     var body: some Scene {
         WindowGroup {
-            DashboardView(viewModel: viewModel, updateManager: updateManager)
+            ZStack {
+                if currentPage == .dashboard {
+                    DashboardView(
+                        viewModel: viewModel,
+                        updateManager: updateManager,
+                        onNext: { currentPage = .cloneRepo }
+                    )
+                    .transition(.asymmetric(insertion: .move(edge: .leading), removal: .move(edge: .leading)))
+                }
+                if currentPage == .cloneRepo {
+                    CloneRepoView(
+                        commandRunner: commandRunner,
+                        onBack: { currentPage = .dashboard }
+                    )
+                    .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .trailing)))
+                }
+            }
+            .animation(.spring(duration: 0.35, bounce: 0.2), value: currentPage)
         }
         .windowStyle(.hiddenTitleBar)
     }

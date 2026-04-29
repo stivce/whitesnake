@@ -77,6 +77,24 @@ struct DashboardView: View {
 
     @ViewBuilder
     private func footerRow(isCompact: Bool) -> some View {
+        if allChecksHealthy {
+            HStack {
+                Spacer()
+                FixAllButton(title: "Next", isEnabled: true) {
+                    // Reserved for future onboarding step
+                }
+            }
+        } else {
+            footerPanel(isCompact: isCompact)
+        }
+    }
+
+    private var allChecksHealthy: Bool {
+        !viewModel.hasFixableItems
+            && !viewModel.items.contains { $0.status == .checking || $0.status == .installing }
+    }
+
+    private func footerPanel(isCompact: Bool) -> some View {
         Group {
             if isCompact {
                 VStack(alignment: .leading, spacing: 10) {

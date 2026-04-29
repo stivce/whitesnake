@@ -1,11 +1,18 @@
 import SwiftUI
 
 struct FixAllButton: View {
+    let title: String
     let isEnabled: Bool
     let action: () -> Void
 
+    init(title: String = "Patch", isEnabled: Bool, action: @escaping () -> Void) {
+        self.title = title
+        self.isEnabled = isEnabled
+        self.action = action
+    }
+
     var body: some View {
-        Button("Patch", action: action)
+        Button(title, action: action)
             .buttonStyle(.plain)
             .font(.system(size: 13, weight: .semibold))
             .foregroundStyle(isEnabled ? .primary : .secondary)

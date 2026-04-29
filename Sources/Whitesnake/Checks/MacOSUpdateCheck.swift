@@ -56,7 +56,19 @@ struct MacOSUpdateCheck: SystemCheck {
     func fix(progressHandler: @escaping @Sendable (InstallProgress) -> Void) async throws {
         progressHandler(InstallProgress(stage: .preparing, fractionCompleted: 0.1, message: "Requesting administrator approval"))
 
-        let script = "/usr/sbin/softwareupdate -ia --agree-to-license"
+        // softwareupdate -ia handles minor updates and security patches but
+        // cannot install major macOS upgrades on Apple Silicon (Secure Enclave
+        // authorisation requires the GUI flow). Run -ia first, then open
+        // Software Update settings if anything remains.
+        let script = """
+        /usr/sbin/softwareupdate -ia --agree-to-license || true
+        REMAINING=$(/usr/sbin/softwareupdate -l 2>&1 | /usr/bin/grep -c "Recommended: YES" || true)
+        if [ "$REMAINING" -gt 0 ]; then
+            USER_NAME=$(/usr/bin/stat -f%Su /dev/console)
+            /usr/bin/sudo -u "$USER_NAME" /usr/bin/open "x-apple.systempreferences:com.apple.Software-Update-Settings.extension"
+            echo "MAJOR_UPGRADE_PENDING"
+        fi
+        """
 
         progressHandler(InstallProgress(stage: .installing, fractionCompleted: 0.4, message: "Installing macOS updates"))
 
@@ -72,6 +84,10 @@ struct MacOSUpdateCheck: SystemCheck {
             )
         }
 
-        progressHandler(InstallProgress(stage: .verifying, fractionCompleted: 1.0, message: "macOS updates installed"))
+        if result.stdout.contains("MAJOR_UPGRADE_PENDING") {
+            progressHandler(InstallProgress(stage: .waitingForUser, fractionCompleted: 1.0, message: "Major upgrade requires Software Update settings"))
+        } else {
+            progressHandler(InstallProgress(stage: .verifying, fractionCompleted: 1.0, message: "macOS updates installed"))
+        }
     }
 }

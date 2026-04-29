@@ -92,7 +92,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git fetch origin main
-          git checkout -B main origin/main
+          git reset --hard origin/main
           git add appcast.xml
           git commit -m "Release ${{ github.ref_name }}" || true
-          git push origin main
+          git push origin main --force-with-lease

@@ -381,23 +381,23 @@
         <div class="checks-grid">
             <div class="check-card">
                 <div class="name">macOS Update</div>
-                <div class="desc">Opens Software Update settings</div>
+                <div class="desc">Installs available updates via softwareupdate</div>
             </div>
             <div class="check-card">
                 <div class="name">Xcode CLT</div>
-                <div class="desc">Triggers system installer</div>
+                <div class="desc">Installs via softwareupdate</div>
             </div>
             <div class="check-card">
                 <div class="name">Homebrew</div>
-                <div class="desc">Opens brew.sh</div>
+                <div class="desc">Installs into /opt/homebrew</div>
             </div>
             <div class="check-card">
                 <div class="name">Rosetta 2</div>
                 <div class="desc">Installs via softwareupdate</div>
             </div>
             <div class="check-card">
-                <div class="name">Git</div>
-                <div class="desc">Installs via Homebrew</div>
+                <div class="name">Git &amp; GitHub CLI</div>
+                <div class="desc">Installs git and gh via Homebrew</div>
             </div>
             <div class="check-card">
                 <div class="name">Ansible</div>
@@ -417,8 +417,8 @@
                 <div class="step-number">1</div>
                 <img src="screenshots/0.png" alt="Screenshot of Whitesnake launching" class="tutorial-image">
                 <div class="step-description">
-                    <h3>Launch the Menu Bar App</h3>
-                    <p>Open Whitesnake from Applications (or Spotlight). It lives in the menu bar and immediately picks up your current environment state.</p>
+                    <h3>Launch Whitesnake</h3>
+                    <p>Open Whitesnake from Applications (or Spotlight). The main window opens and immediately starts scanning your environment state.</p>
                 </div>
             </div>
 
@@ -444,8 +444,8 @@
                 <div class="step-number">4</div>
                 <img src="screenshots/3.png" alt="Screenshot of running all checks" class="tutorial-image">
                 <div class="step-description">
-                    <h3>Run All Checks</h3>
-                    <p>Press <strong>Run All Checks</strong> to start verification. Whitesnake works through the list in order and reports progress inline.</p>
+                    <h3>Patch Everything at Once</h3>
+                    <p>Checks run automatically on launch. Press <strong>Patch</strong> to fix all failing items in one go, or click <strong>Fix</strong> on individual rows to handle them one at a time.</p>
                 </div>
             </div>
 
@@ -513,7 +513,6 @@
             <ul>
                 <li><strong>macOS</strong> — 14 (Sonoma) or later</li>
                 <li><strong>Architecture</strong> — Apple Silicon (arm64)</li>
-                <li><strong>Prerequisite</strong> — Xcode Command Line Tools (<code>xcode-select --install</code>)</li>
             </ul>
         </div>
     </div>

@@ -16,7 +16,7 @@ enum GitCheckError: Error, Equatable, LocalizedError {
 
 struct GitCheck: SystemCheck {
     let id = "git"
-    let title = "Git"
+    let title = "Git & GitHub CLI"
     let requiresAdmin = false
     let fixAllPriority: Int? = 5
 
@@ -38,13 +38,13 @@ struct GitCheck: SystemCheck {
     }
 
     var fixConfirmationMessage: String {
-        "Whitesnake will install Git with Homebrew using a predefined absolute-path command."
+        "Whitesnake will install Git and the GitHub CLI with Homebrew using predefined absolute-path commands."
     }
 
     func check() async -> CheckResult {
-        let candidates = [systemGitURL, homebrewGitURL]
+        let gitCandidates = [systemGitURL, homebrewGitURL]
 
-        for candidate in candidates {
+        for candidate in gitCandidates {
             do {
                 let result = try await commandRunner.run(
                     Command(
@@ -68,7 +68,10 @@ struct GitCheck: SystemCheck {
             }
         }
 
-        return CheckResult(status: .missing, details: "Git was not found in the default system locations.")
+        return CheckResult(
+            status: .missing,
+            details: "Git or GitHub CLI was not found in the default locations."
+        )
     }
 
     func fix() async throws {
@@ -80,22 +83,44 @@ struct GitCheck: SystemCheck {
             throw GitCheckError.homebrewMissing
         }
 
-        let parser = BrewInstallProgressParser(packageName: "Git")
-        progressHandler(parser.initialProgress)
+        let gitParser = BrewInstallProgressParser(packageName: "Git")
+        progressHandler(gitParser.initialProgress)
 
-        let result = try await commandRunner.runStreaming(
+        let gitResult = try await commandRunner.runStreaming(
             Command(executableURL: brewURL, arguments: ["install", "git"], timeoutSeconds: 300)
         ) { line in
-            if let progress = parser.process(line) {
+            if let progress = gitParser.process(line) {
                 progressHandler(progress)
             }
         }
 
-        guard result.exitCode == 0 else {
-            let message = result.stderr.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard gitResult.exitCode == 0 else {
+            let message = gitResult.stderr.trimmingCharacters(in: .whitespacesAndNewlines)
             throw GitCheckError.installFailed(message.isEmpty ? "Git installation failed." : message)
         }
 
-        progressHandler(InstallProgress(stage: .verifying, fractionCompleted: 1, message: "Git installation complete"))
+        let ghParser = BrewInstallProgressParser(packageName: "GitHub CLI")
+        progressHandler(ghParser.initialProgress)
+
+        let ghResult = try await commandRunner.runStreaming(
+            Command(executableURL: brewURL, arguments: ["install", "gh"], timeoutSeconds: 300)
+        ) { line in
+            if let progress = ghParser.process(line) {
+                progressHandler(progress)
+            }
+        }
+
+        guard ghResult.exitCode == 0 else {
+            let message = ghResult.stderr.trimmingCharacters(in: .whitespacesAndNewlines)
+            throw GitCheckError.installFailed(message.isEmpty ? "GitHub CLI installation failed." : message)
+        }
+
+        progressHandler(
+            InstallProgress(
+                stage: .verifying,
+                fractionCompleted: 1,
+                message: "Git & GitHub CLI installation complete"
+            )
+        )
     }
 }

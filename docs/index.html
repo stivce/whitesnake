@@ -225,37 +225,6 @@
             color: var(--text-secondary);
         }
 
-        .tutorial-gallery {
-            margin-top: 48px;
-        }
-
-        .gallery-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-            gap: 16px;
-        }
-
-        .gallery-card {
-            background: rgba(28, 28, 30, 0.65);
-            border: 1px solid rgba(56, 56, 58, 0.8);
-            border-radius: 14px;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .gallery-card img {
-            width: 100%;
-            display: block;
-        }
-
-        .gallery-card span {
-            padding: 12px 14px;
-            font-size: 13px;
-            color: var(--text-secondary);
-            border-top: 1px solid rgba(56, 56, 58, 0.8);
-        }
-
         /* Requirements */
         .requirements {
             background: var(--surface);
@@ -323,10 +292,6 @@
 
             .tutorial-image {
                 width: 100%;
-            }
-
-            .gallery-grid {
-                grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
             }
         }
 
@@ -410,96 +375,51 @@
 <section class="section tutorial-section">
     <div class="container">
         <h2>How to Use Whitesnake</h2>
-        <p class="section-intro">Follow the walkthrough to see exactly what happens from first launch to green checkmarks. The first five steps capture the primary flow; the gallery showcases the remaining screens so you know what to expect.</p>
+        <p class="section-intro">Follow the walkthrough to get from download to a fully verified environment.</p>
 
         <div class="tutorial-steps">
             <div class="tutorial-step">
                 <div class="step-number">1</div>
-                <img src="screenshots/0.png" alt="Screenshot of Whitesnake launching" class="tutorial-image">
+                <img src="screenshots/0.png" alt="Whitesnake download page" class="tutorial-image">
                 <div class="step-description">
-                    <h3>Launch Whitesnake</h3>
-                    <p>Open Whitesnake from Applications (or Spotlight). The main window opens and immediately starts scanning your environment state.</p>
+                    <h3>Download Whitesnake</h3>
+                    <p>Visit the website and click <strong>Download Whitesnake</strong>. The latest DMG will be saved to your Downloads folder.</p>
                 </div>
             </div>
 
             <div class="tutorial-step">
                 <div class="step-number">2</div>
-                <img src="screenshots/1.png" alt="Screenshot of first-run onboarding" class="tutorial-image">
+                <img src="screenshots/1.png" alt="Downloaded DMG in Finder" class="tutorial-image">
                 <div class="step-description">
-                    <h3>Confirm First-Run Prompts</h3>
-                    <p>macOS may prompt to confirm that you trust the download. Approve the dialog so the helper processes can launch.</p>
+                    <h3>Open the DMG</h3>
+                    <p>Double-click <strong>Whitesnake-x.x.x.dmg</strong> in your Downloads folder to mount the disk image.</p>
                 </div>
             </div>
 
             <div class="tutorial-step">
                 <div class="step-number">3</div>
-                <img src="screenshots/2.png" alt="Screenshot of the checks overview" class="tutorial-image">
+                <img src="screenshots/2.png" alt="DMG window — drag Whitesnake to Applications" class="tutorial-image">
                 <div class="step-description">
-                    <h3>Review Environment Checks</h3>
-                    <p>The overview lists every tool Whitesnake audits. Each row highlights the current status and the action that will be taken if something is missing.</p>
+                    <h3>Drag to Applications</h3>
+                    <p>Drag the Whitesnake icon onto the Applications folder shortcut inside the DMG window to install it.</p>
                 </div>
             </div>
 
             <div class="tutorial-step">
                 <div class="step-number">4</div>
-                <img src="screenshots/3.png" alt="Screenshot of running all checks" class="tutorial-image">
+                <img src="screenshots/3.png" alt="Whitesnake in Applications folder" class="tutorial-image">
                 <div class="step-description">
-                    <h3>Patch Everything at Once</h3>
-                    <p>Checks run automatically on launch. Press <strong>Patch</strong> to fix all failing items in one go, or click <strong>Fix</strong> on individual rows to handle them one at a time.</p>
+                    <h3>Launch from Applications</h3>
+                    <p>Open your Applications folder, find Whitesnake, and double-click to launch it.</p>
                 </div>
             </div>
 
             <div class="tutorial-step">
                 <div class="step-number">5</div>
-                <img src="screenshots/4.png" alt="Screenshot of fixing a failed check" class="tutorial-image">
+                <img src="screenshots/4.png" alt="macOS security block dialog" class="tutorial-image">
                 <div class="step-description">
-                    <h3>Fix Issues Instantly</h3>
-                    <p>If a check fails, click <strong>Fix</strong>. Whitesnake runs the recommended command for you or deep-links to the relevant installer.</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="tutorial-gallery">
-            <div class="gallery-grid">
-                <div class="gallery-card">
-                    <img src="screenshots/5.png" alt="Additional Whitesnake screenshot 6">
-                    <span>Detailed results as checks complete.</span>
-                </div>
-                <div class="gallery-card">
-                    <img src="screenshots/6.png" alt="Additional Whitesnake screenshot 7">
-                    <span>Guided fixes with copy-ready commands.</span>
-                </div>
-                <div class="gallery-card">
-                    <img src="screenshots/7.png" alt="Additional Whitesnake screenshot 8">
-                    <span>Success states once tooling passes.</span>
-                </div>
-                <div class="gallery-card">
-                    <img src="screenshots/8.png" alt="Additional Whitesnake screenshot 9">
-                    <span>Rosetta and prerequisite guidance.</span>
-                </div>
-                <div class="gallery-card">
-                    <img src="screenshots/9.png" alt="Additional Whitesnake screenshot 10">
-                    <span>Shortcuts for installing Homebrew formulas.</span>
-                </div>
-                <div class="gallery-card">
-                    <img src="screenshots/10.png" alt="Additional Whitesnake screenshot 11">
-                    <span>Menu bar controls and quick actions.</span>
-                </div>
-                <div class="gallery-card">
-                    <img src="screenshots/11.png" alt="Additional Whitesnake screenshot 12">
-                    <span>Focused view for individual checks.</span>
-                </div>
-                <div class="gallery-card">
-                    <img src="screenshots/12.png" alt="Additional Whitesnake screenshot 13">
-                    <span>Automatic retry flow after fixes.</span>
-                </div>
-                <div class="gallery-card">
-                    <img src="screenshots/13.png" alt="Additional Whitesnake screenshot 14">
-                    <span>Progress notifications from the menu bar.</span>
-                </div>
-                <div class="gallery-card">
-                    <img src="screenshots/14.png" alt="Additional Whitesnake screenshot 15">
-                    <span>Everything green when your Mac is ready.</span>
+                    <h3>Bypass the macOS Security Warning</h3>
+                    <p>macOS will block the app on first launch because it is not from the App Store. Click <strong>Done</strong>, then go to <strong>System Settings → Privacy &amp; Security</strong> and click <strong>Open Anyway</strong>.</p>
                 </div>
             </div>
         </div>

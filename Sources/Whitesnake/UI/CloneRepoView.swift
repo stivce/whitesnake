@@ -6,7 +6,7 @@ private enum CloneConstants {
     static let maxConsoleLines = 500
     static let copyResetDelayNanoseconds: UInt64 = 1_500_000_000
     static let branchListMaxHeight: CGFloat = 180
-    static let consoleMaxHeight: CGFloat = 140
+    static let consoleMaxHeight: CGFloat = 220
     static let cloneTimeoutSeconds: TimeInterval = 120
     static let lsRemoteTimeoutSeconds: TimeInterval = 15
     static let playbookRunTimeoutSeconds: TimeInterval = 1800
@@ -374,16 +374,17 @@ struct CloneRepoView: View {
 
                     if model.repoExists {
                         rolesSection
-                        if !model.consoleLines.isEmpty || model.isRunning {
-                            debugConsole
-                        }
-                    }
-
-                    if let result = model.runResult {
-                        runResultBanner(result)
                     }
                 }
                 .padding(.bottom, 4)
+            }
+
+            if !model.consoleLines.isEmpty || model.isRunning {
+                debugConsole
+            }
+
+            if let result = model.runResult {
+                runResultBanner(result)
             }
 
             if model.repoExists {

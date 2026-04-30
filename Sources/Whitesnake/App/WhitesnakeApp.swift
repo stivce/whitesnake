@@ -33,7 +33,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 let maxWidth = screenFrame.width * WindowLayout.maxScreenFraction
                 let maxHeight = screenFrame.height * WindowLayout.maxScreenFraction
                 let targetWidth = min(WindowLayout.preferredWidth, maxWidth)
-                let targetHeight = min(WindowLayout.preferredHeight, maxHeight)
+                let targetHeight = maxHeight
 
                 window.minSize = NSSize(width: WindowLayout.minWidth, height: WindowLayout.minHeight)
                 let x = (screenFrame.width - targetWidth) / 2 + screenFrame.origin.x

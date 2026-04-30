@@ -1,18 +1,31 @@
 import AppKit
 import SwiftUI
 
+enum GHAuthStatus: Equatable {
+    case checking
+    case loggedIn(username: String)
+    case notLoggedIn
+    case ghMissing
+    case failed(String)
+}
+
 @MainActor
 final class GenerateKeyViewModel: ObservableObject {
     @Published private(set) var publicKey: String? = nil
     @Published private(set) var isGenerating = false
     @Published private(set) var didCopy = false
     @Published private(set) var errorMessage: String? = nil
+    @Published private(set) var ghAuthStatus: GHAuthStatus = .checking
+    @Published private(set) var isAuthenticating = false
+    @Published private(set) var authOutputLines: [String] = []
 
     private let commandRunner: any CommandRunning
+    private let ghURL = URL(fileURLWithPath: "/opt/homebrew/bin/gh")
 
     init(commandRunner: any CommandRunning) {
         self.commandRunner = commandRunner
         loadExistingKey()
+        Task { await checkGHAuth() }
     }
 
     func generateKey() async {
@@ -59,6 +72,73 @@ final class GenerateKeyViewModel: ObservableObject {
             errorMessage = readable(error: error)
             publicKey = nil
         }
+    }
+
+    func checkGHAuth() async {
+        ghAuthStatus = .checking
+        guard FileManager.default.isExecutableFile(atPath: ghURL.path) else {
+            ghAuthStatus = .ghMissing
+            return
+        }
+        do {
+            let result = try await commandRunner.run(
+                Command(executableURL: ghURL, arguments: ["auth", "status"], timeoutSeconds: 10)
+            )
+            if result.exitCode == 0 {
+                let output = result.stdout + result.stderr
+                let username = parseGHUsername(from: output)
+                ghAuthStatus = .loggedIn(username: username ?? "")
+            } else {
+                ghAuthStatus = .notLoggedIn
+            }
+        } catch let error as CommandRunnerError {
+            if case .launchFailed = error {
+                ghAuthStatus = .ghMissing
+            } else {
+                ghAuthStatus = .failed(error.localizedDescription)
+            }
+        } catch {
+            ghAuthStatus = .failed(error.localizedDescription)
+        }
+    }
+
+    func loginGH() async {
+        guard !isAuthenticating else { return }
+        isAuthenticating = true
+        authOutputLines = []
+        defer { isAuthenticating = false }
+
+        do {
+            let result = try await commandRunner.runStreaming(
+                Command(executableURL: ghURL, arguments: ["auth", "login", "--web", "--git-protocol", "https"], timeoutSeconds: 300)
+            ) { [weak self] line in
+                Task { @MainActor [weak self] in
+                    self?.authOutputLines.append(line.text)
+                }
+            }
+            if result.exitCode == 0 {
+                await checkGHAuth()
+            } else {
+                let message = [result.stdout, result.stderr]
+                    .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                    .filter { !$0.isEmpty }
+                    .joined(separator: "\n")
+                ghAuthStatus = .failed(message.isEmpty ? "Authentication failed." : message)
+            }
+        } catch {
+            ghAuthStatus = .failed(error.localizedDescription)
+        }
+    }
+
+    private func parseGHUsername(from output: String) -> String? {
+        for line in output.components(separatedBy: "\n") {
+            if line.contains("Logged in to") && line.contains("account") {
+                if let afterAccount = line.components(separatedBy: "account ").last {
+                    return afterAccount.components(separatedBy: " ").first.map { String($0) }
+                }
+            }
+        }
+        return nil
     }
 
     func copyKey() {
@@ -153,6 +233,8 @@ struct GenerateKeyView: View {
             keyDescriptionSection
 
             keyOutputSection
+
+            ghAuthSection
                 }
                 .padding(.bottom, 4)
             }
@@ -245,6 +327,95 @@ struct GenerateKeyView: View {
                     RoundedRectangle(cornerRadius: 14, style: .continuous)
                         .strokeBorder(.white.opacity(0.1), lineWidth: 1)
                 }
+            }
+        }
+    }
+
+    private var ghAuthSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 8) {
+                ghStatusIndicator
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("GitHub Authentication")
+                        .font(.system(size: 14, weight: .semibold))
+                    Text(ghStatusLabel)
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                if case .notLoggedIn = model.ghAuthStatus {
+                    FixAllButton(
+                        title: model.isAuthenticating ? "Waiting…" : "Login with GitHub",
+                        isEnabled: !model.isAuthenticating
+                    ) {
+                        Task { await model.loginGH() }
+                    }
+                } else if case .failed = model.ghAuthStatus {
+                    FixAllButton(title: "Retry", isEnabled: true) {
+                        Task { await model.loginGH() }
+                    }
+                } else if case .ghMissing = model.ghAuthStatus {
+                    EmptyView()
+                }
+            }
+
+            if !model.authOutputLines.isEmpty {
+                terminalPane
+            }
+        }
+        .padding(14)
+        .background(.white.opacity(0.045), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .strokeBorder(.white.opacity(0.1), lineWidth: 1)
+        }
+    }
+
+    @ViewBuilder
+    private var ghStatusIndicator: some View {
+        switch model.ghAuthStatus {
+        case .checking:
+            ProgressView()
+                .scaleEffect(0.6)
+                .frame(width: 10, height: 10)
+        case .loggedIn:
+            Circle().fill(Color.green).frame(width: 10, height: 10)
+        case .notLoggedIn, .failed:
+            Circle().fill(Color.red).frame(width: 10, height: 10)
+        case .ghMissing:
+            Circle().fill(Color.orange).frame(width: 10, height: 10)
+        }
+    }
+
+    private var ghStatusLabel: String {
+        switch model.ghAuthStatus {
+        case .checking:           return "Checking…"
+        case .loggedIn(let user): return user.isEmpty ? "Logged in" : "Logged in as \(user)"
+        case .notLoggedIn:        return "Not logged in"
+        case .ghMissing:          return "GitHub CLI not found — install it via Homebrew"
+        case .failed(let msg):    return msg
+        }
+    }
+
+    private var terminalPane: some View {
+        ScrollViewReader { proxy in
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 3) {
+                    ForEach(Array(model.authOutputLines.enumerated()), id: \.offset) { _, line in
+                        Text(line)
+                            .font(.system(size: 11, design: .monospaced))
+                            .foregroundStyle(.green)
+                            .textSelection(.enabled)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    Color.clear.frame(height: 1).id("bottom")
+                }
+                .padding(10)
+            }
+            .frame(maxWidth: .infinity, minHeight: 80, maxHeight: 160)
+            .background(Color.black.opacity(0.6), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .onChange(of: model.authOutputLines.count) {
+                withAnimation { proxy.scrollTo("bottom") }
             }
         }
     }

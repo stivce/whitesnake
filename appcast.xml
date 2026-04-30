@@ -7,14 +7,14 @@
         <link>https://github.com/stivce/whitesnake</link>
         <item>
             <title>Whitesnake 1.0.32</title>
-            <pubDate>Thu, 30 Apr 2026 12:39:39 +0000</pubDate>
+            <pubDate>Thu, 30 Apr 2026 13:10:05 +0000</pubDate>
             <sparkle:version>1.0.32</sparkle:version>
             <sparkle:shortVersionString>1.0.32</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
             <enclosure
                 url="https://github.com/stivce/whitesnake/releases/download/v1.0.32/Whitesnake-1.0.32.dmg"
-                sparkle:edSignature="u4fLSR23KxIC4uug+g/sId+ICi1bqu1Xap2eVZasxZ/OYFhaScCGQ58ESpX6ztP8K/ftvBROZzrCjPNBjWRNCA=="
-                length="4635274"
+                sparkle:edSignature="oqs76ox1Wz7r22wUlJh0DI+5l3E/Q6UEXcXNQ2SKl8MKKF9dQhaYdTna9xbTHnznMyu27CHig7ZUFAPY5hFZCg=="
+                length="4635263"
                 type="application/octet-stream"/>
         </item>
     </channel>

@@ -4,11 +4,13 @@ struct Command: Sendable, Equatable {
     let executableURL: URL
     let arguments: [String]
     let timeoutSeconds: TimeInterval
+    let currentDirectoryURL: URL?
 
-    init(executableURL: URL, arguments: [String], timeoutSeconds: TimeInterval = 10) {
+    init(executableURL: URL, arguments: [String], timeoutSeconds: TimeInterval = 10, currentDirectoryURL: URL? = nil) {
         self.executableURL = executableURL
         self.arguments = arguments
         self.timeoutSeconds = timeoutSeconds
+        self.currentDirectoryURL = currentDirectoryURL
     }
 }
 
@@ -158,6 +160,9 @@ final class CommandRunner: CommandRunning, @unchecked Sendable {
         process.arguments = command.arguments
         process.standardOutput = stdoutPipe
         process.standardError = stderrPipe
+        if let cwd = command.currentDirectoryURL {
+            process.currentDirectoryURL = cwd
+        }
 
         return try await withTaskCancellationHandler {
             try await withCheckedThrowingContinuation { continuation in

@@ -203,10 +203,11 @@ final class CloneRepoViewModel: ObservableObject {
                 Command(
                     executableURL: URL(fileURLWithPath: ansiblePath),
                     arguments: [
-                        "\(targetDir)/playbook.yml",
+                        "playbook.yml",
                         "--tags", tagsArg
                     ],
-                    timeoutSeconds: CloneConstants.playbookRunTimeoutSeconds
+                    timeoutSeconds: CloneConstants.playbookRunTimeoutSeconds,
+                    currentDirectoryURL: URL(fileURLWithPath: targetDir)
                 ),
                 onLine: { [weak self] line in
                     Task { @MainActor in

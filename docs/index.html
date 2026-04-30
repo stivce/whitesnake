@@ -270,29 +270,7 @@
     </div>
 </section>
 
-<section class="section">
-    <div class="container">
-        <h2>First-time setup</h2>
-        <div class="requirements">
-            <p style="margin-bottom: 16px; font-size: 15px; color: var(--text-secondary);">
-                Since Whitesnake is an open-source personal project, it is not notarized by Apple.
-                If macOS blocks the app on first launch, run this in Terminal:
-            </p>
-            <div class="code-block" style="position: relative; margin: 0 20px 16px;">
-                <code style="display: block; background: var(--bg); border: 1px solid var(--border); padding: 12px 50px 12px 16px; border-radius: 8px; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 14px; color: var(--success); overflow-x: auto;">xattr -d com.apple.quarantine ~/Downloads/Whitesnake-*.dmg</code>
-                <button class="copy-btn" data-cmd="xattr -d com.apple.quarantine ~/Downloads/Whitesnake-*.dmg" style="position: absolute; top: 8px; right: 8px; background: var(--surface); border: 1px solid var(--border); color: var(--text-secondary); padding: 4px 8px; border-radius: 6px; cursor: pointer; font-size: 16px; line-height: 1; display: flex; align-items: center; justify-content: center; transition: color 0.2s;" aria-label="Copy command">⌘</button>
-            </div>
-            <ol style="padding-left: 20px; list-style: decimal; color: var(--text-secondary); font-size: 15px; line-height: 1.8;">
-                <li>Run the command above after downloading the DMG</li>
-                <li>Open the DMG and drag <strong>Whitesnake.app</strong> into your <strong>Applications</strong> folder</li>
-                <li>Open Whitesnake normally from Applications</li>
-            </ol>
-            <p style="margin-top: 16px; font-size: 14px; color: var(--text-secondary);">
-                If your downloads are in a different folder, adjust the path accordingly. You only need to do this once.
-            </p>
-        </div>
-    </div>
-</section>
+<!-- First-time setup section removed since macOS "Open Anyway" flow is easier -->
 
 <section class="section">
     <div class="container">

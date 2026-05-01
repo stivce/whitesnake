@@ -67,6 +67,7 @@ final class CloneRepoViewModel: ObservableObject {
     @Published private(set) var isRunning = false
     @Published private(set) var runResult: RunResult?
     @Published private(set) var consoleLines: [String] = []
+    @Published var becomePassword: String = ""
 
     let repoURL = CloneConstants.repoURL
 
@@ -198,14 +199,29 @@ final class CloneRepoViewModel: ObservableObject {
         let tagsArg = selectedRoleTags.sorted().joined(separator: ",")
         let ansiblePath = resolveAnsiblePath()
 
+        var arguments = ["playbook.yml", "--tags", tagsArg]
+        var tempPasswordFile: URL? = nil
+
+        if !becomePassword.isEmpty {
+            let tmp = FileManager.default.temporaryDirectory
+                .appendingPathComponent(UUID().uuidString + ".json")
+            let json = "{\"ansible_become_password\":\"\(becomePassword.replacingOccurrences(of: "\"", with: "\\\""))\"}"
+            try? json.write(to: tmp, atomically: true, encoding: .utf8)
+            arguments += ["--extra-vars", "@\(tmp.path)"]
+            tempPasswordFile = tmp
+        }
+
+        defer {
+            if let tmp = tempPasswordFile {
+                try? FileManager.default.removeItem(at: tmp)
+            }
+        }
+
         do {
             let result = try await commandRunner.runStreaming(
                 Command(
                     executableURL: URL(fileURLWithPath: ansiblePath),
-                    arguments: [
-                        "playbook.yml",
-                        "--tags", tagsArg
-                    ],
+                    arguments: arguments,
                     timeoutSeconds: CloneConstants.playbookRunTimeoutSeconds,
                     currentDirectoryURL: URL(fileURLWithPath: targetDir)
                 ),
@@ -379,6 +395,10 @@ struct CloneRepoView: View {
                 .padding(.bottom, 4)
             }
 
+            if model.repoExists {
+                passwordField
+            }
+
             if !model.consoleLines.isEmpty || model.isRunning {
                 debugConsole
             }
@@ -414,6 +434,30 @@ struct CloneRepoView: View {
 
     private var runButtonTitle: String {
         model.isRunning ? "Running…" : "Run Selected"
+    }
+
+    private var passwordField: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "lock")
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(.secondary)
+                .frame(width: 16)
+
+            SecureField("Sudo password (required for admin roles)", text: $model.becomePassword)
+                .font(.system(size: 12, weight: .medium, design: .monospaced))
+                .textFieldStyle(.plain)
+                .disabled(model.isRunning)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 11)
+        .background(.white.opacity(0.045), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .strokeBorder(
+                    model.becomePassword.isEmpty ? Color.white.opacity(0.1) : Color.cyan.opacity(0.4),
+                    lineWidth: 1
+                )
+        }
     }
 
     private var footerRow: some View {

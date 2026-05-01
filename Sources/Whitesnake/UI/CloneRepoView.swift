@@ -68,6 +68,7 @@ final class CloneRepoViewModel: ObservableObject {
     @Published private(set) var runResult: RunResult?
     @Published private(set) var consoleLines: [String] = []
     @Published var becomePassword: String = ""
+    @Published var verboseOutput: Bool = false
 
     let repoURL = CloneConstants.repoURL
 
@@ -199,7 +200,8 @@ final class CloneRepoViewModel: ObservableObject {
         let tagsArg = selectedRoleTags.sorted().joined(separator: ",")
         let ansiblePath = resolveAnsiblePath()
 
-        let arguments = ["playbook.yml", "--tags", tagsArg]
+        var arguments = ["playbook.yml", "--tags", tagsArg]
+        if verboseOutput { arguments.append("-v") }
         var additionalEnv: [String: String] = [:]
         var tempPasswordFile: URL? = nil
 
@@ -496,6 +498,15 @@ struct CloneRepoView: View {
 
     private var runFooterRow: some View {
         HStack(alignment: .center) {
+            Toggle(isOn: $model.verboseOutput) {
+                Text("Verbose")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(.secondary)
+            }
+            .toggleStyle(.checkbox)
+            .disabled(model.isRunning)
+            .help("Show detailed output for each task, including Homebrew install progress")
+
             Spacer()
 
             FixAllButton(

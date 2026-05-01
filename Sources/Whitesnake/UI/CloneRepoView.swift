@@ -204,19 +204,33 @@ final class CloneRepoViewModel: ObservableObject {
         if verboseOutput { arguments.append("-v") }
         var additionalEnv: [String: String] = [:]
         var tempPasswordFile: URL? = nil
+        var tempAskpassFile: URL? = nil
 
         if !becomePassword.isEmpty {
-            let tmp = FileManager.default.temporaryDirectory
+            // Password file for Ansible become tasks (macos-sudo, etc.)
+            let pwdTmp = FileManager.default.temporaryDirectory
                 .appendingPathComponent(UUID().uuidString)
-            try? becomePassword.write(to: tmp, atomically: true, encoding: .utf8)
-            additionalEnv["ANSIBLE_BECOME_PASSWORD_FILE"] = tmp.path
-            tempPasswordFile = tmp
+            try? becomePassword.write(to: pwdTmp, atomically: true, encoding: .utf8)
+            additionalEnv["ANSIBLE_BECOME_PASSWORD_FILE"] = pwdTmp.path
+            tempPasswordFile = pwdTmp
+
+            // Askpass script for Homebrew's internal sudo calls (PKG cask installs).
+            // Homebrew adds -A to sudo when SUDO_ASKPASS is set (system_command.rb).
+            let askTmp = FileManager.default.temporaryDirectory
+                .appendingPathComponent(UUID().uuidString + ".sh")
+            let script = "#!/bin/sh\ncat \"\(pwdTmp.path)\"\n"
+            try? script.write(to: askTmp, atomically: true, encoding: .utf8)
+            try? FileManager.default.setAttributes(
+                [FileAttributeKey.posixPermissions: 0o700],
+                ofItemAtPath: askTmp.path
+            )
+            additionalEnv["SUDO_ASKPASS"] = askTmp.path
+            tempAskpassFile = askTmp
         }
 
         defer {
-            if let tmp = tempPasswordFile {
-                try? FileManager.default.removeItem(at: tmp)
-            }
+            if let tmp = tempPasswordFile { try? FileManager.default.removeItem(at: tmp) }
+            if let tmp = tempAskpassFile { try? FileManager.default.removeItem(at: tmp) }
         }
 
         do {

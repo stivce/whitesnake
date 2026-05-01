@@ -665,9 +665,25 @@ struct CloneRepoView: View {
 
     private var debugConsole: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Output")
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(.tertiary)
+            HStack {
+                Text("Output")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(.tertiary)
+
+                Spacer()
+
+                Button {
+                    let text = model.consoleLines.joined(separator: "\n")
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(text, forType: .string)
+                } label: {
+                    Image(systemName: "doc.on.doc")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .help("Copy all output")
+            }
 
             ScrollViewReader { proxy in
                 ScrollView {

@@ -201,8 +201,20 @@ final class CloneRepoViewModel: ObservableObject {
 
         let arguments = ["playbook.yml", "--tags", tagsArg]
         var additionalEnv: [String: String] = [:]
+        var tempPasswordFile: URL? = nil
+
         if !becomePassword.isEmpty {
-            additionalEnv["ANSIBLE_BECOME_PASS"] = becomePassword
+            let tmp = FileManager.default.temporaryDirectory
+                .appendingPathComponent(UUID().uuidString)
+            try? becomePassword.write(to: tmp, atomically: true, encoding: .utf8)
+            additionalEnv["ANSIBLE_BECOME_PASSWORD_FILE"] = tmp.path
+            tempPasswordFile = tmp
+        }
+
+        defer {
+            if let tmp = tempPasswordFile {
+                try? FileManager.default.removeItem(at: tmp)
+            }
         }
 
         do {

@@ -199,22 +199,10 @@ final class CloneRepoViewModel: ObservableObject {
         let tagsArg = selectedRoleTags.sorted().joined(separator: ",")
         let ansiblePath = resolveAnsiblePath()
 
-        var arguments = ["playbook.yml", "--tags", tagsArg]
-        var tempPasswordFile: URL? = nil
-
+        let arguments = ["playbook.yml", "--tags", tagsArg]
+        var additionalEnv: [String: String] = [:]
         if !becomePassword.isEmpty {
-            let tmp = FileManager.default.temporaryDirectory
-                .appendingPathComponent(UUID().uuidString + ".json")
-            let json = "{\"ansible_become_password\":\"\(becomePassword.replacingOccurrences(of: "\"", with: "\\\""))\"}"
-            try? json.write(to: tmp, atomically: true, encoding: .utf8)
-            arguments += ["--extra-vars", "@\(tmp.path)"]
-            tempPasswordFile = tmp
-        }
-
-        defer {
-            if let tmp = tempPasswordFile {
-                try? FileManager.default.removeItem(at: tmp)
-            }
+            additionalEnv["ANSIBLE_BECOME_PASS"] = becomePassword
         }
 
         do {
@@ -223,7 +211,8 @@ final class CloneRepoViewModel: ObservableObject {
                     executableURL: URL(fileURLWithPath: ansiblePath),
                     arguments: arguments,
                     timeoutSeconds: CloneConstants.playbookRunTimeoutSeconds,
-                    currentDirectoryURL: URL(fileURLWithPath: targetDir)
+                    currentDirectoryURL: URL(fileURLWithPath: targetDir),
+                    additionalEnvironment: additionalEnv
                 ),
                 onLine: { [weak self] line in
                     Task { @MainActor in

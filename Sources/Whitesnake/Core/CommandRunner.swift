@@ -5,12 +5,20 @@ struct Command: Sendable, Equatable {
     let arguments: [String]
     let timeoutSeconds: TimeInterval
     let currentDirectoryURL: URL?
+    let additionalEnvironment: [String: String]
 
-    init(executableURL: URL, arguments: [String], timeoutSeconds: TimeInterval = 10, currentDirectoryURL: URL? = nil) {
+    init(
+        executableURL: URL,
+        arguments: [String],
+        timeoutSeconds: TimeInterval = 10,
+        currentDirectoryURL: URL? = nil,
+        additionalEnvironment: [String: String] = [:]
+    ) {
         self.executableURL = executableURL
         self.arguments = arguments
         self.timeoutSeconds = timeoutSeconds
         self.currentDirectoryURL = currentDirectoryURL
+        self.additionalEnvironment = additionalEnvironment
     }
 }
 
@@ -162,6 +170,13 @@ final class CommandRunner: CommandRunning, @unchecked Sendable {
         process.standardError = stderrPipe
         if let cwd = command.currentDirectoryURL {
             process.currentDirectoryURL = cwd
+        }
+        if !command.additionalEnvironment.isEmpty {
+            var env = ProcessInfo.processInfo.environment
+            for (key, value) in command.additionalEnvironment {
+                env[key] = value
+            }
+            process.environment = env
         }
 
         return try await withTaskCancellationHandler {

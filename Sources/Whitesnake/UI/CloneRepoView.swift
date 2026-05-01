@@ -676,8 +676,7 @@ struct CloneRepoView: View {
                             Text(line)
                                 .font(.system(size: 10, weight: .regular, design: .monospaced))
                                 .foregroundStyle(.secondary)
-                                .lineLimit(1)
-                                .truncationMode(.middle)
+                                .textSelection(.enabled)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                         }
 

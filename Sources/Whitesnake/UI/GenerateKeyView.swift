@@ -18,13 +18,18 @@ final class GenerateKeyViewModel: ObservableObject {
     @Published private(set) var ghAuthStatus: GHAuthStatus = .checking
     @Published private(set) var isAuthenticating = false
     @Published private(set) var authOutputLines: [String] = []
+    @Published private(set) var touchIDSudoEnabled = false
+    @Published private(set) var isEnablingTouchIDSudo = false
+    @Published private(set) var touchIDSudoError: String? = nil
 
     private let commandRunner: any CommandRunning
     private let ghURL = URL(fileURLWithPath: "/opt/homebrew/bin/gh")
+    private let sudoLocalPath = "/etc/pam.d/sudo_local"
 
     init(commandRunner: any CommandRunning) {
         self.commandRunner = commandRunner
         loadExistingKey()
+        checkTouchIDSudo()
         Task { await checkGHAuth() }
     }
 
@@ -141,6 +146,54 @@ final class GenerateKeyViewModel: ObservableObject {
         return nil
     }
 
+    func checkTouchIDSudo() {
+        guard let contents = try? String(contentsOfFile: sudoLocalPath, encoding: .utf8) else {
+            touchIDSudoEnabled = false
+            return
+        }
+        touchIDSudoEnabled = contents.components(separatedBy: "\n").contains { line in
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            return !trimmed.hasPrefix("#") && trimmed.contains("pam_tid.so")
+        }
+    }
+
+    func enableTouchIDSudo() async {
+        guard !isEnablingTouchIDSudo else { return }
+        isEnablingTouchIDSudo = true
+        touchIDSudoError = nil
+        defer { isEnablingTouchIDSudo = false }
+
+        let script = """
+        set -e
+        FILE=/etc/pam.d/sudo_local
+        if [ -f "$FILE" ] && grep -qE '^[^#]*pam_tid\\.so' "$FILE"; then
+            exit 0
+        fi
+        if [ -f "$FILE" ]; then
+            /usr/bin/sed -i '' 's/^#[[:space:]]*\\(auth[[:space:]].*pam_tid\\.so\\)/\\1/' "$FILE"
+            if grep -qE '^[^#]*pam_tid\\.so' "$FILE"; then
+                exit 0
+            fi
+        fi
+        printf 'auth       sufficient     pam_tid.so\\n' >> "$FILE"
+        """
+
+        do {
+            let result = try await commandRunner.runPrivileged(
+                scriptBody: script,
+                prompt: "Whitesnake needs administrator access to enable Touch ID for sudo",
+                timeoutSeconds: 30
+            )
+            guard result.exitCode == 0 else {
+                touchIDSudoError = CheckSupport.failureMessage(result, fallback: "Failed to enable Touch ID for sudo.")
+                return
+            }
+            checkTouchIDSudo()
+        } catch {
+            touchIDSudoError = error.localizedDescription
+        }
+    }
+
     func copyKey() {
         guard let publicKey else { return }
         let pasteboard = NSPasteboard.general
@@ -233,6 +286,8 @@ struct GenerateKeyView: View {
             keyDescriptionSection
 
             keyOutputSection
+
+            touchIDSudoSection
 
             ghAuthSection
                 }
@@ -328,6 +383,44 @@ struct GenerateKeyView: View {
                         .strokeBorder(.white.opacity(0.1), lineWidth: 1)
                 }
             }
+        }
+    }
+
+    private var touchIDSudoSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 8) {
+                if model.touchIDSudoEnabled {
+                    Circle().fill(Color.green).frame(width: 10, height: 10)
+                } else {
+                    Circle().fill(Color.orange).frame(width: 10, height: 10)
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Touch ID for sudo")
+                        .font(.system(size: 14, weight: .semibold))
+                    Text(model.touchIDSudoEnabled ? "Enabled — no password prompt in Terminal" : "Use Touch ID instead of your password in Terminal")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                if !model.touchIDSudoEnabled {
+                    FixAllButton(
+                        title: model.isEnablingTouchIDSudo ? "Enabling…" : "Enable",
+                        isEnabled: !model.isEnablingTouchIDSudo
+                    ) {
+                        Task { await model.enableTouchIDSudo() }
+                    }
+                }
+            }
+
+            if let error = model.touchIDSudoError {
+                statusBanner(message: error, isSuccess: false)
+            }
+        }
+        .padding(14)
+        .background(.white.opacity(0.045), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .strokeBorder(.white.opacity(0.1), lineWidth: 1)
         }
     }
 

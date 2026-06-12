@@ -70,7 +70,8 @@ struct WhitesnakeApp: App {
                     HomebrewCheck(commandRunner: runner),
                     RosettaCheck(commandRunner: runner),
                     GitCheck(commandRunner: runner),
-                    AnsibleCheck(commandRunner: runner)
+                    AnsibleCheck(commandRunner: runner),
+                    ClaudeCodeCheck(commandRunner: runner)
                 ]
             )
         )

@@ -48,6 +48,7 @@ enum AppPage: Hashable {
     case dashboard
     case generateKey
     case cloneRepo
+    case reboot
 }
 
 @main
@@ -106,9 +107,15 @@ struct WhitesnakeApp: App {
                 if currentPage == .cloneRepo {
                     CloneRepoView(
                         commandRunner: commandRunner,
-                        onBack: { currentPage = .generateKey }
+                        onBack: { currentPage = .generateKey },
+                        onNext: { currentPage = .reboot }
                     )
                     .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .trailing)))
+                }
+
+                if currentPage == .reboot {
+                    RebootView()
+                        .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .trailing)))
                 }
             }
             .animation(.spring(duration: 0.35, bounce: 0.2), value: currentPage)

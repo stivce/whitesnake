@@ -362,10 +362,12 @@ final class CloneRepoViewModel: ObservableObject {
 
 struct CloneRepoView: View {
     let onBack: () -> Void
+    let onNext: () -> Void
     @StateObject private var model: CloneRepoViewModel
 
-    init(commandRunner: any CommandRunning, onBack: @escaping () -> Void) {
+    init(commandRunner: any CommandRunning, onBack: @escaping () -> Void, onNext: @escaping () -> Void) {
         self.onBack = onBack
+        self.onNext = onNext
         _model = StateObject(wrappedValue: CloneRepoViewModel(commandRunner: commandRunner))
     }
 
@@ -391,6 +393,14 @@ struct CloneRepoView: View {
                 .padding(.horizontal, Design.panelPadding)
         }
         .ignoresSafeArea()
+        .onChange(of: model.runResult) { _, result in
+            if case .success = result {
+                Task {
+                    try? await Task.sleep(nanoseconds: 1_000_000_000)
+                    onNext()
+                }
+            }
+        }
     }
 
     private var panelContent: some View {

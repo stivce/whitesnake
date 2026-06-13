@@ -21,6 +21,7 @@ final class GenerateKeyViewModel: ObservableObject {
     @Published private(set) var touchIDSudoEnabled = false
     @Published private(set) var isEnablingTouchIDSudo = false
     @Published private(set) var touchIDSudoError: String? = nil
+    @Published private(set) var touchIDSudoPendingManual = false
 
     private let commandRunner: any CommandRunning
     private let ghURL = URL(fileURLWithPath: "/opt/homebrew/bin/gh")
@@ -163,24 +164,26 @@ final class GenerateKeyViewModel: ObservableObject {
         touchIDSudoError = nil
         defer { isEnablingTouchIDSudo = false }
 
-        // Shell redirects (>>) hit EPERM on /etc/pam.d/ even as root on macOS 14+.
-        // Using tee as a separate process bypasses this restriction.
-        let script = "FILE=/etc/pam.d/sudo_local; /usr/bin/grep -q 'pam_tid' \"$FILE\" 2>/dev/null && exit 0; /bin/echo 'auth       sufficient     pam_tid.so' | /usr/bin/tee \"$FILE\" > /dev/null"
-
+        // /etc/pam.d/ requires Full Disk Access which Terminal.app has by default.
+        // Open Terminal with the command — the user enters their password there.
+        let appleScript = "tell application \"Terminal\" to do script \"echo 'auth       sufficient     pam_tid.so' | sudo tee /etc/pam.d/sudo_local\""
         do {
-            let result = try await commandRunner.runPrivileged(
-                scriptBody: script,
-                prompt: "Whitesnake needs administrator access to enable Touch ID for sudo",
-                timeoutSeconds: 30
-            )
-            guard result.exitCode == 0 else {
-                touchIDSudoError = CheckSupport.failureMessage(result, fallback: "Failed to enable Touch ID for sudo.")
-                return
-            }
-            checkTouchIDSudo()
+            _ = try await commandRunner.run(Command(
+                executableURL: URL(fileURLWithPath: "/usr/bin/osascript"),
+                arguments: ["-e", appleScript],
+                timeoutSeconds: 10
+            ))
+            touchIDSudoPendingManual = true
+            touchIDSudoError = "Enter your password in Terminal, then click 'Check'."
         } catch {
             touchIDSudoError = error.localizedDescription
         }
+    }
+
+    func verifyTouchIDSudo() {
+        touchIDSudoError = nil
+        touchIDSudoPendingManual = false
+        checkTouchIDSudo()
     }
 
     func copyKey() {
@@ -392,11 +395,17 @@ struct GenerateKeyView: View {
                 }
                 Spacer()
                 if !model.touchIDSudoEnabled {
-                    FixAllButton(
-                        title: model.isEnablingTouchIDSudo ? "Enabling…" : "Enable",
-                        isEnabled: !model.isEnablingTouchIDSudo
-                    ) {
-                        Task { await model.enableTouchIDSudo() }
+                    if model.touchIDSudoPendingManual {
+                        FixAllButton(title: "Check", isEnabled: true) {
+                            model.verifyTouchIDSudo()
+                        }
+                    } else {
+                        FixAllButton(
+                            title: model.isEnablingTouchIDSudo ? "Opening Terminal…" : "Enable",
+                            isEnabled: !model.isEnablingTouchIDSudo
+                        ) {
+                            Task { await model.enableTouchIDSudo() }
+                        }
                     }
                 }
             }

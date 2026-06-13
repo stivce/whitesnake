@@ -163,20 +163,9 @@ final class GenerateKeyViewModel: ObservableObject {
         touchIDSudoError = nil
         defer { isEnablingTouchIDSudo = false }
 
-        let script = """
-        set -e
-        FILE=/etc/pam.d/sudo_local
-        if [ -f "$FILE" ] && grep -qE '^[^#]*pam_tid\\.so' "$FILE"; then
-            exit 0
-        fi
-        if [ -f "$FILE" ]; then
-            /usr/bin/sed -i '' 's/^#[[:space:]]*\\(auth[[:space:]].*pam_tid\\.so\\)/\\1/' "$FILE"
-            if grep -qE '^[^#]*pam_tid\\.so' "$FILE"; then
-                exit 0
-            fi
-        fi
-        printf 'auth       sufficient     pam_tid.so\\n' >> "$FILE"
-        """
+        // Shell redirects (>>) hit EPERM on /etc/pam.d/ even as root on macOS 14+.
+        // Using tee as a separate process bypasses this restriction.
+        let script = "FILE=/etc/pam.d/sudo_local; /usr/bin/grep -q 'pam_tid' \"$FILE\" 2>/dev/null && exit 0; /bin/echo 'auth       sufficient     pam_tid.so' | /usr/bin/tee \"$FILE\" > /dev/null"
 
         do {
             let result = try await commandRunner.runPrivileged(
